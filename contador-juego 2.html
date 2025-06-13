@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Juego de Sumar y Restar</title>
+  <style>
+    body {
+      background: linear-gradient(120deg, #FFD700 0%, #FF69B4 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      margin: 0;
+    }
+    .container {
+      background: #fffbe6;
+      border-radius: 32px;
+      box-shadow: 0 10px 24px rgba(255, 140, 0, 0.15);
+      padding: 48px 36px;
+      display: flex;
+      align-items: center;
+      gap: 36px;
+    }
+    .btn {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      font-size: 2.5rem;
+      font-weight: bold;
+      border: none;
+      cursor: pointer;
+      transition: transform 0.2s;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.14);
+      color: #fff;
+    }
+    .btn:active {
+      transform: scale(0.93);
+    }
+    .btn.minus {
+      background: linear-gradient(120deg, #4FC3F7 0%, #1976D2 100%);
+    }
+    .btn.plus {
+      background: linear-gradient(120deg, #81C784 0%, #388E3C 100%);
+    }
+    .counter {
+      font-size: 4rem;
+      font-weight: bold;
+      color: #FF5722;
+      text-align: center;
+      min-width: 80px;
+    }
+    @media (max-width: 500px) {
+      .container {
+        flex-direction: column;
+        gap: 18px;
+        padding: 28px 12px;
+      }
+      .btn {
+        width: 54px;
+        height: 54px;
+        font-size: 2rem;
+      }
+      .counter {
+        font-size: 2.5rem;
+        min-width: 50px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <button class="btn minus" aria-label="Restar" onclick="sumarRestar(-1)">-</button>
+    <span class="counter" id="contador">0</span>
+    <button class="btn plus" aria-label="Sumar" onclick="sumarRestar(1)">+</button>
+  </div>
+  <script>
+    let contador = 0;
+    const contadorElem = document.getElementById('contador');
+
+    function sumarRestar(valor) {
+      contador += valor;
+      if (contador < 0) contador = 0; // Evita negativos
+      contadorElem.textContent = contador;
+      decirNumero(contador);
+    }
+
+    function decirNumero(numero) {
+      const mensaje = new SpeechSynthesisUtterance(numero.toString());
+      mensaje.lang = 'es-ES'; // o 'es-MX' para acento mexicano
+      mensaje.rate = 0.7; // velocidad más lenta
+      speechSynthesis.cancel(); // detiene cualquier voz anterior
+      speechSynthesis.speak(mensaje);
+    }
+  </script>
+</body>
+</html>
