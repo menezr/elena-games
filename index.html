@@ -144,10 +144,10 @@
             </div>
             <div>
                 <h1 class="text-base sm:text-lg font-extrabold text-slate-800 leading-tight">
-                    El Elena Game 💖
+                    Tarjetas de Elena 💖
                 </h1>
-                <p class="text-[10px] sm:text-xs font-bold text-purple-600 font-quicksand uppercase tracking-wide">
-                    Tarjetas de Sílabas
+                <p id="voice-label" class="text-[10px] sm:text-xs font-bold text-purple-600 font-quicksand uppercase tracking-wide">
+                    Voz Femenina Activa 🗣️
                 </p>
             </div>
         </div>
@@ -177,7 +177,7 @@
             <!-- Top Instruction Banner -->
             <div class="w-full bg-white/80 border border-white rounded-2xl p-2.5 shadow-sm text-center mb-2">
                 <span class="text-xs sm:text-sm font-extrabold text-purple-900 flex items-center justify-center space-x-1">
-                    <span>👈 Toca una consonante y abre sus sílabas 👉</span>
+                    <span>👈 Escoge una letra y toca sus sílabas 👉</span>
                 </span>
             </div>
 
@@ -191,7 +191,7 @@
             <!-- SYLLABLE CARDS GRID (A, E, I, O, U) -->
             <div class="w-full flex-grow flex flex-col justify-center">
                 <div class="text-xs font-extrabold text-slate-400 mb-1.5 uppercase text-center tracking-wider">
-                    Tarjetas Mágicas (<span id="active-consonant-title" class="text-purple-600 font-black">M</span>)
+                    Tarjetas con la letra <span id="active-consonant-title" class="text-purple-600 font-black">M</span>
                 </div>
                 <div id="syllables-cards-container" class="grid grid-cols-2 gap-2.5 w-full max-h-[310px] overflow-y-auto p-1">
                     <!-- Dynamic Syllable 3D Flip Cards -->
@@ -301,6 +301,31 @@
         /* GAME DATA */
         const CONSONANTS = ['M', 'P', 'S', 'L', 'T', 'D', 'N', 'R', 'C', 'F', 'B', 'V', 'G'];
         const VOWELS = ['A', 'E', 'I', 'O', 'U'];
+
+        // Phonetic lookup dictionary to FORCE smooth single syllable audio in Web Speech API
+        const PHONETIC_SYLLABLES = {
+            'MA': 'má', 'ME': 'mé', 'MI': 'mí', 'MO': 'mó', 'MU': 'mú',
+            'PA': 'pá', 'PE': 'pé', 'PI': 'pí', 'PO': 'pó', 'PU': 'pú',
+            'SA': 'sá', 'SE': 'sé', 'SI': 'sí', 'SO': 'só', 'SU': 'sú',
+            'LA': 'lá', 'LE': 'lé', 'LI': 'lí', 'LO': 'ló', 'LU': 'lú',
+            'TA': 'tá', 'TE': 'té', 'TI': 'tí', 'TO': 'tó', 'TU': 'tú',
+            'DA': 'dá', 'DE': 'dé', 'DI': 'dí', 'DO': 'dó', 'DU': 'dú',
+            'NA': 'ná', 'NE': 'né', 'NI': 'ní', 'NO': 'nó', 'NU': 'nú',
+            'RA': 'rá', 'RE': 'ré', 'RI': 'rí', 'RO': 'ró', 'RU': 'rú',
+            'CA': 'ká', 'CE': 'sé', 'CI': 'sí', 'CO': 'kó', 'CU': 'kú',
+            'FA': 'fá', 'FE': 'fé', 'FI': 'fí', 'FO': 'fó', 'FU': 'fú',
+            'BA': 'bá', 'BE': 'bé', 'BI': 'bí', 'BO': 'bó', 'BU': 'bú',
+            'VA': 'vá', 'VE': 'vé', 'VI': 'ví', 'VO': 'vó', 'VU': 'vú',
+            'GA': 'gá', 'GE': 'jé', 'GI': 'jí', 'GO': 'gó', 'GU': 'gú'
+        };
+
+        const CONSONANT_NAMES = {
+            'M': 'La letra eme', 'P': 'La letra pe', 'S': 'La letra ese',
+            'L': 'La letra ele', 'T': 'La letra te', 'D': 'La letra de',
+            'N': 'La letra ene', 'R': 'La letra erre', 'C': 'La letra ce',
+            'F': 'La letra efe', 'B': 'La letra be', 'V': 'La letra uve',
+            'G': 'La letra ge'
+        };
 
         const PASTEL_PALETTE = [
             { bg: 'bg-cardRed', border: 'border-red-200', text: 'text-red-950', accent: '#FF9AA2' },
@@ -414,15 +439,125 @@
         let builderSlots = ['', ''];
 
         const synth = window.speechSynthesis;
+        let selectedFemaleVoice = null;
 
-        function speak(text) {
-            if (!audioEnabled || !('speechSynthesis' in window)) return;
+        // Audio Context for Switch Chime / Pop Effects
+        let audioCtx = null;
+
+        function playPopSound() {
+            if (!audioEnabled) return;
             try {
-                synth.cancel();
-                const utterance = new SpeechSynthesisUtterance(text);
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.08);
+
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.08);
+            } catch (e) {}
+        }
+
+        function playFanfareSound() {
+            if (!audioEnabled) return;
+            try {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+
+                const now = audioCtx.currentTime;
+                const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+
+                notes.forEach((freq, idx) => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, now + idx * 0.1);
+
+                    gain.gain.setValueAtTime(0.3, now + idx * 0.1);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.1 + 0.3);
+
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+
+                    osc.start(now + idx * 0.1);
+                    osc.stop(now + idx * 0.1 + 0.3);
+                });
+            } catch(e) {}
+        }
+
+        // SMART FEMALE VOICE SELECTION IN SPANISH
+        function loadVoices() {
+            if (!('speechSynthesis' in window)) return;
+            const voices = synth.getVoices();
+
+            if (!voices || voices.length === 0) return;
+
+            // Priority list for natural Spanish female voices
+            const preferredNames = [
+                'paulina', 'monica', 'mónica', 'helena', 'sabina', 'luciana', 'francisca',
+                'victoria', 'paloma', 'soledad', 'esperanza', 'google español', 'spanish female'
+            ];
+
+            const spanishVoices = voices.filter(v => v.lang.startsWith('es'));
+
+            // 1. Check preferred names
+            for (let pref of preferredNames) {
+                const found = spanishVoices.find(v => v.name.toLowerCase().includes(pref));
+                if (found) {
+                    selectedFemaleVoice = found;
+                    break;
+                }
+            }
+
+            // 2. Fallback to any Spanish voice that isn't explicitly male
+            if (!selectedFemaleVoice) {
+                selectedFemaleVoice = spanishVoices.find(v => !v.name.toLowerCase().includes('jorge') && !v.name.toLowerCase().includes('diego') && !v.name.toLowerCase().includes('carlos') && !v.name.toLowerCase().includes('male')) || spanishVoices[0] || voices[0];
+            }
+
+            if (selectedFemaleVoice) {
+                const label = document.getElementById('voice-label');
+                if (label) label.innerText = `Voz: ${selectedFemaleVoice.name.substring(0, 15)} ✨`;
+            }
+        }
+
+        if ('speechSynthesis' in window) {
+            synth.onvoiceschanged = loadVoices;
+            loadVoices();
+        }
+
+        function speak(textToSay, isSyllable = false) {
+            playPopSound();
+            if (!audioEnabled || !('speechSynthesis' in window)) return;
+
+            try {
+                synth.cancel(); // Prevents overlapping/cutting
+
+                let formattedText = textToSay;
+                if (isSyllable && PHONETIC_SYLLABLES[textToSay.toUpperCase()]) {
+                    formattedText = PHONETIC_SYLLABLES[textToSay.toUpperCase()];
+                }
+
+                const utterance = new SpeechSynthesisUtterance(formattedText);
                 utterance.lang = 'es-ES';
-                utterance.rate = 0.85;
-                utterance.pitch = 1.15;
+
+                if (!selectedFemaleVoice) loadVoices();
+                if (selectedFemaleVoice) utterance.voice = selectedFemaleVoice;
+
+                // Adjust rate & pitch for warm, child-friendly speech
+                utterance.rate = isSyllable ? 0.75 : 0.88;
+                utterance.pitch = 1.2;
+
                 synth.speak(utterance);
             } catch (e) {
                 console.log('Audio error:', e);
@@ -430,6 +565,7 @@
         }
 
         window.onload = function() {
+            loadVoices();
             renderConsonantCards();
             loadExplorerSyllableCards(currentConsonant);
             initFindGame();
@@ -485,7 +621,7 @@
                     currentConsonant = c;
                     updateConsonantSelection();
                     loadExplorerSyllableCards(c);
-                    speak(`Letra ${c}`);
+                    speak(CONSONANT_NAMES[c] || `Letra ${c}`);
                 };
 
                 card.innerHTML = `
@@ -550,10 +686,11 @@
 
             if (!isFlipped) {
                 inner.classList.add('is-flipped');
-                speak(`${syllable}. De ${word}`);
+                const phoneticSyl = PHONETIC_SYLLABLES[syllable] || syllable;
+                speak(`${phoneticSyl}. De ${word}`);
             } else {
                 inner.classList.remove('is-flipped');
-                speak(syllable);
+                speak(syllable, true);
             }
         }
 
@@ -594,11 +731,12 @@
         }
 
         function playFindPromptAudio() {
-            speak(`Elena, busca la tarjeta ${findTargetSyllable}`);
+            const phonetic = PHONETIC_SYLLABLES[findTargetSyllable] || findTargetSyllable;
+            speak(`Elena, busca la tarjeta, ${phonetic}`);
         }
 
         function checkFindCard(selected, cardElem) {
-            speak(selected);
+            speak(selected, true);
             if (selected === findTargetSyllable) {
                 cardElem.classList.add('ring-4', 'ring-emerald-400');
                 triggerReward("¡Excelente, Elena!", `¡Encontraste la tarjeta ${findTargetSyllable}!`);
@@ -607,7 +745,8 @@
                 }, 1600);
             } else {
                 cardElem.classList.add('animate-shake');
-                speak(`Esa es ${selected}. ¡Busca otra vez!`);
+                const phoneticSelected = PHONETIC_SYLLABLES[selected] || selected;
+                speak(`Esa es, ${phoneticSelected}. ¡Busca otra vez!`);
                 setTimeout(() => {
                     cardElem.classList.remove('animate-shake');
                 }, 500);
@@ -649,11 +788,11 @@
                 container.appendChild(card);
             });
 
-            speak(`Arma la palabra ${currentItem.name}`);
+            speak(`Arma la palabra, ${currentItem.name}`);
         }
 
         function selectBuilderCard(syl) {
-            speak(syl);
+            speak(syl, true);
 
             if (builderSlots[0] === '') {
                 builderSlots[0] = syl;
@@ -677,7 +816,7 @@
 
             if (formed === target) {
                 setTimeout(() => {
-                    speak(`¡Genial Elena! Formaste ${currentItem.name}`);
+                    speak(`¡Genial Elena! Formaste, ${currentItem.name}`);
                     triggerReward("¡Palabra Completa!", `¡Formaste ${currentItem.name}!`);
                     builderIndex++;
                     setTimeout(() => {
@@ -703,6 +842,8 @@
         function triggerReward(title, subtitle) {
             stars += 1;
             document.getElementById('star-count').innerText = stars;
+
+            playFanfareSound();
 
             if (typeof confetti === 'function') {
                 confetti({
