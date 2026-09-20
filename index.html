@@ -1,97 +1,724 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Juego de Sumar y Restar</title>
-  <style>
-    body {
-      background: linear-gradient(120deg, #FFD700 0%, #FF69B4 100%);
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-      margin: 0;
-    }
-    .container {
-      background: #fffbe6;
-      border-radius: 32px;
-      box-shadow: 0 10px 24px rgba(255, 140, 0, 0.15);
-      padding: 48px 36px;
-      display: flex;
-      align-items: center;
-      gap: 36px;
-    }
-    .btn {
-      width: 72px;
-      height: 72px;
-      border-radius: 50%;
-      font-size: 2.5rem;
-      font-weight: bold;
-      border: none;
-      cursor: pointer;
-      transition: transform 0.2s;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.14);
-      color: #fff;
-    }
-    .btn:active {
-      transform: scale(0.93);
-    }
-    .btn.minus {
-      background: linear-gradient(120deg, #4FC3F7 0%, #1976D2 100%);
-    }
-    .btn.plus {
-      background: linear-gradient(120deg, #81C784 0%, #388E3C 100%);
-    }
-    .counter {
-      font-size: 4rem;
-      font-weight: bold;
-      color: #FF5722;
-      text-align: center;
-      min-width: 80px;
-    }
-    @media (max-width: 500px) {
-      .container {
-        flex-direction: column;
-        gap: 18px;
-        padding: 28px 12px;
-      }
-      .btn {
-        width: 54px;
-        height: 54px;
-        font-size: 2rem;
-      }
-      .counter {
-        font-size: 2.5rem;
-        min-width: 50px;
-      }
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>¡Las Sílabas de Elena!</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Fredoka & Quicksand for a friendly rounded Switch UI look -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Quicksand:wght@600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Canvas Confetti Library -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        pastelRed: '#FF9AA2',
+                        pastelOrange: '#FFB7B2',
+                        pastelYellow: '#FFDAC1',
+                        pastelGreen: '#E2F0CB',
+                        pastelMint: '#B5EAD7',
+                        pastelPurple: '#C7CEEA',
+                        pastelPink: '#F6A6FF',
+                        switchBlue: '#00C3E3',
+                        switchRed: '#FF4554',
+                        switchBg: '#F3F4F8'
+                    },
+                    fontFamily: {
+                        fredoka: ['Fredoka', 'sans-serif'],
+                        quicksand: ['Quicksand', 'sans-serif']
+                    },
+                    boxShadow: {
+                        'switch': '0 8px 0px 0px rgba(0,0,0,0.12), 0 12px 20px -4px rgba(0,0,0,0.1)',
+                        'switch-active': '0 2px 0px 0px rgba(0,0,0,0.12)',
+                        'card-pop': '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Fredoka', cursive, sans-serif;
+            background-color: #EBF4F6;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .switch-card {
+            transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .switch-card:hover {
+            transform: translateY(-6px) scale(1.02);
+        }
+
+        .switch-card:active {
+            transform: translateY(2px) scale(0.98);
+        }
+
+        .bouncy {
+            animation: bounce 0.6s infinite alternate cubic-bezier(0.5, 0.05, 0.1, 0.3);
+        }
+
+        @keyframes bounce {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-12px); }
+        }
+
+        .pulse-glow {
+            animation: pulseGlow 2s infinite;
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 15px rgba(255, 183, 178, 0.8); }
+            50% { box-shadow: 0 0 30px rgba(181, 234, 215, 0.9); }
+        }
+
+        /* Custom Scrollbar for Consonants */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* Glassmorphism switch screen look */
+        .switch-screen {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            border: 4px solid #FFFFFF;
+        }
+    </style>
 </head>
-<body>
-  <div class="container">
-    <button class="btn minus" aria-label="Restar" onclick="sumarRestar(-1)">-</button>
-    <span class="counter" id="contador">0</span>
-    <button class="btn plus" aria-label="Sumar" onclick="sumarRestar(1)">+</button>
-  </div>
-  <script>
-    let contador = 0;
-    const contadorElem = document.getElementById('contador');
+<body class="min-h-screen flex flex-col justify-between p-2 sm:p-4 md:p-6 overflow-x-hidden text-slate-700">
 
-    function sumarRestar(valor) {
-      contador += valor;
-      if (contador < 0) contador = 0; // Evita negativos
-      contadorElem.textContent = contador;
-      decirNumero(contador);
-    }
+    <!-- TOP BAR / HEADER -->
+    <header class="max-w-5xl mx-auto w-full flex items-center justify-between bg-white rounded-3xl p-3 sm:p-4 shadow-lg border-4 border-white mb-4">
+        <div class="flex items-center space-x-3">
+            <div class="bg-gradient-to-tr from-pastelPink to-pastelPurple p-3 rounded-2xl shadow-inner text-white text-2xl sm:text-3xl">
+                <i class="fa-solid font-bold fa-shapes"></i>
+            </div>
+            <div>
+                <h1 class="text-2xl sm:text-3xl md:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 via-pink-500 to-red-400">
+                    ¡Las Sílabas de Elena!
+                </h1>
+                <p class="text-xs sm:text-sm font-semibold text-slate-400 font-quicksand">Modo Aprender & Jugar 🎮</p>
+            </div>
+        </div>
 
-    function decirNumero(numero) {
-      const mensaje = new SpeechSynthesisUtterance(numero.toString());
-      mensaje.lang = 'es-ES'; // o 'es-MX' para acento mexicano
-      mensaje.rate = 0.7; // velocidad más lenta
-      speechSynthesis.cancel(); // detiene cualquier voz anterior
-      speechSynthesis.speak(mensaje);
-    }
-  </script>
+        <div class="flex items-center space-x-2 sm:space-x-3">
+            <!-- Audio Toggle Button -->
+            <button id="btn-audio" onclick="toggleAudio()" class="bg-pastelGreen hover:bg-emerald-200 text-slate-700 p-3 sm:px-4 sm:py-2 rounded-2xl font-bold flex items-center space-x-2 shadow-md transition active:scale-95">
+                <i id="audio-icon" class="fa-solid fa-volume-high text-xl text-emerald-600"></i>
+                <span class="hidden sm:inline text-sm">Voz</span>
+            </button>
+            
+            <!-- Stars Counter -->
+            <div class="bg-amber-100 text-amber-700 font-bold px-3 py-2 sm:px-4 sm:py-2 rounded-2xl flex items-center space-x-2 border-2 border-amber-300 shadow-sm">
+                <i class="fa-solid fa-star text-amber-400 text-xl sm:text-2xl animate-bounce"></i>
+                <span id="star-count" class="text-xl sm:text-2xl font-extrabold">0</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT CONTAINER -->
+    <main class="max-w-5xl mx-auto w-full flex-grow flex flex-col justify-start items-center">
+
+        <!-- MODE SELECTOR TABS (SWITCH STYLE) -->
+        <nav class="w-full flex justify-center mb-4 space-x-2 sm:space-x-4">
+            <button onclick="switchTab('explorer')" id="tab-explorer" class="tab-btn flex-1 max-w-[200px] py-3 px-2 rounded-2xl font-bold text-sm sm:text-base md:text-lg flex flex-col sm:flex-row items-center justify-center space-y-1 sm:space-y-0 sm:space-x-2 shadow-md transition-all bg-pastelPink text-purple-900 border-2 border-white scale-105">
+                <i class="fa-solid fa-compass text-lg sm:text-xl"></i>
+                <span>1. Explorar</span>
+            </button>
+            <button onclick="switchTab('find')" id="tab-find" class="tab-btn flex-1 max-w-[200px] py-3 px-2 rounded-2xl font-bold text-sm sm:text-base md:text-lg flex flex-col sm:flex-row items-center justify-center space-y-1 sm:space-y-0 sm:space-x-2 shadow-md transition-all bg-white text-slate-600 border-2 border-slate-100 opacity-80">
+                <i class="fa-solid fa-bullseye text-lg sm:text-xl text-sky-500"></i>
+                <span>2. Buscar</span>
+            </button>
+            <button onclick="switchTab('builder')" id="tab-builder" class="tab-btn flex-1 max-w-[200px] py-3 px-2 rounded-2xl font-bold text-sm sm:text-base md:text-lg flex flex-col sm:flex-row items-center justify-center space-y-1 sm:space-y-0 sm:space-x-2 shadow-md transition-all bg-white text-slate-600 border-2 border-slate-100 opacity-80">
+                <i class="fa-solid fa-puzzle-piece text-lg sm:text-xl text-amber-500"></i>
+                <span>3. Crear</span>
+            </button>
+        </nav>
+
+        <!-- CONSONANT SELECTION BAR -->
+        <section class="w-full bg-white rounded-3xl p-3 sm:p-4 shadow-lg border-4 border-white mb-6">
+            <div class="flex items-center justify-between mb-2 px-2">
+                <span class="text-xs sm:text-sm font-bold text-slate-400 uppercase tracking-wider">Elige una letra para mezclar:</span>
+                <span id="current-consonant-badge" class="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-xs sm:text-sm font-extrabold">Letra M</span>
+            </div>
+            
+            <div id="consonants-bar" class="flex space-x-2 sm:space-x-3 overflow-x-auto no-scrollbar py-2 px-1">
+                <!-- Consonants dynamically loaded here -->
+            </div>
+        </section>
+
+        <!-- SECTION 1: EXPLORER MODE -->
+        <section id="sec-explorer" class="w-full flex-grow flex flex-col items-center">
+            <div class="switch-screen w-full rounded-3xl p-4 sm:p-6 shadow-xl flex flex-col items-center">
+                <p class="text-slate-500 text-base sm:text-xl mb-4 font-bold text-center">
+                    ¡Toca las sílabas para escuchar cómo suenan con las vocales!
+                </p>
+
+                <!-- Syllables Grid (M + A, E, I, O, U) -->
+                <div id="syllable-cards-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 w-full">
+                    <!-- Syllable Cards generated via JS -->
+                </div>
+
+                <!-- Word & Image Display Popup Area -->
+                <div id="explorer-detail-box" class="w-full mt-6 bg-gradient-to-r from-pastelPurple/40 to-pastelPink/40 rounded-3xl p-4 sm:p-6 border-2 border-white shadow-inner flex flex-col sm:flex-row items-center justify-around min-h-[160px] hidden">
+                    <div class="text-7xl sm:text-8xl mb-2 sm:mb-0 bouncy" id="explorer-emoji">🍎</div>
+                    <div class="text-center sm:text-left">
+                        <div id="explorer-syllable-highlight" class="text-4xl sm:text-6xl font-black text-purple-700">MA</div>
+                        <div id="explorer-word" class="text-2xl sm:text-4xl font-extrabold text-slate-800 tracking-wide mt-1">Manzana</div>
+                        <p class="text-slate-500 text-sm sm:text-base font-medium font-quicksand">¡Empieza con la sílaba <span id="explorer-syllable-text" class="font-bold text-purple-600">MA</span>!</p>
+                    </div>
+                    <button onclick="speakCurrentWord()" class="mt-3 sm:mt-0 bg-white hover:bg-amber-100 text-amber-600 p-4 rounded-2xl shadow-md border-2 border-amber-200 transition active:scale-90 flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-volume-high text-2xl"></i>
+                        <span class="font-bold text-sm">Escuchar</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 2: FIND THE SYLLABLE GAME -->
+        <section id="sec-find" class="w-full flex-grow flex flex-col items-center hidden">
+            <div class="switch-screen w-full rounded-3xl p-4 sm:p-6 shadow-xl flex flex-col items-center text-center">
+                
+                <div class="bg-pastelYellow border-2 border-amber-200 rounded-2xl p-4 mb-6 w-full max-w-lg shadow-sm">
+                    <span class="text-xs sm:text-sm font-bold text-amber-800 uppercase tracking-wider block mb-1">Reto para Elena 🎯</span>
+                    <h2 id="find-prompt-text" class="text-2xl sm:text-4xl font-extrabold text-slate-800">
+                        ¿Dónde está la sílaba <span class="text-pink-600 underline decoration-wavy">MA</span>?
+                    </h2>
+                </div>
+
+                <div class="flex justify-center items-center mb-6">
+                    <button onclick="playFindPromptAudio()" class="bg-purple-500 hover:bg-purple-600 text-white font-bold px-5 py-3 rounded-2xl shadow-lg border-2 border-purple-300 flex items-center space-x-3 transition active:scale-95">
+                        <i class="fa-solid fa-circle-play text-2xl"></i>
+                        <span class="text-lg">Escuchar de nuevo</span>
+                    </button>
+                </div>
+
+                <!-- Options Grid -->
+                <div id="find-options-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-4 w-full max-w-2xl">
+                    <!-- Dynamic option buttons -->
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 3: WORD BUILDER GAME -->
+        <section id="sec-builder" class="w-full flex-grow flex flex-col items-center hidden">
+            <div class="switch-screen w-full rounded-3xl p-4 sm:p-6 shadow-xl flex flex-col items-center text-center">
+                
+                <p class="text-slate-500 text-base sm:text-lg mb-2 font-bold">
+                    ¡Arma la palabra uniendo 2 sílabas!
+                </p>
+
+                <!-- Target Word Card -->
+                <div class="bg-white rounded-3xl p-4 sm:p-6 shadow-md border-4 border-pastelPurple mb-6 flex flex-col items-center w-full max-w-md">
+                    <div id="builder-target-emoji" class="text-7xl sm:text-8xl mb-2 bouncy">🥔</div>
+                    <div id="builder-target-name" class="text-2xl sm:text-3xl font-extrabold text-purple-800 uppercase">PAPA</div>
+                    
+                    <!-- Syllable Slots -->
+                    <div class="flex space-x-3 mt-4">
+                        <div id="slot-1" class="w-20 h-20 sm:w-24 sm:h-24 bg-slate-100 border-4 border-dashed border-slate-300 rounded-2xl flex items-center justify-center text-3xl sm:text-4xl font-black text-slate-700 shadow-inner">
+                            ?
+                        </div>
+                        <div class="text-3xl font-black text-slate-300 flex items-center">+</div>
+                        <div id="slot-2" class="w-20 h-20 sm:w-24 sm:h-24 bg-slate-100 border-4 border-dashed border-slate-300 rounded-2xl flex items-center justify-center text-3xl sm:text-4xl font-black text-slate-700 shadow-inner">
+                            ?
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Available Syllables Bank -->
+                <div class="w-full max-w-md">
+                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-2">Toca las sílabas correctas:</span>
+                    <div id="builder-syllable-bank" class="flex flex-wrap justify-center gap-3">
+                        <!-- Dynamic Syllable Buttons -->
+                    </div>
+                </div>
+
+                <!-- Reset Button -->
+                <button onclick="resetBuilder()" class="mt-6 text-slate-400 hover:text-slate-600 font-bold text-sm flex items-center space-x-1">
+                    <i class="fa-solid fa-rotate-right"></i>
+                    <span>Empezar de nuevo esta palabra</span>
+                </button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- REWARD / CONGRATS OVERLAY POPUP -->
+    <div id="reward-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center shadow-2xl border-4 border-pastelYellow transform transition-all scale-90 animate-bounce-once">
+            <div class="text-6xl sm:text-7xl mb-2">🌟</div>
+            <h3 id="reward-title" class="text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-amber-500 mb-2">
+                ¡Increíble, Elena!
+            </h3>
+            <p id="reward-subtitle" class="text-slate-600 font-bold mb-6 text-base sm:text-lg">
+                ¡Has encontrado la sílaba correcta!
+            </p>
+            <button onclick="closeRewardModal()" class="w-full bg-gradient-to-r from-pastelPink to-pastelPurple hover:from-pink-300 hover:to-purple-300 text-purple-950 font-black py-4 rounded-2xl shadow-lg border-2 border-white text-xl transition active:scale-95">
+                ¡Seguir Jugando! 🚀
+            </button>
+        </div>
+    </div>
+
+    <script>
+        /* MAIN APPLICATION DATA */
+        const CONSONANTS = ['M', 'P', 'S', 'L', 'T', 'D', 'N', 'R', 'C', 'F', 'B'];
+        const VOWELS = ['A', 'E', 'I', 'O', 'U'];
+
+        // Color palette pairs for pastel colorful buttons
+        const PASTEL_COLORS = [
+            { bg: 'bg-pastelRed', border: 'border-red-200', text: 'text-red-900' },
+            { bg: 'bg-pastelOrange', border: 'border-orange-200', text: 'text-orange-900' },
+            { bg: 'bg-pastelYellow', border: 'border-amber-200', text: 'text-amber-900' },
+            { bg: 'bg-pastelGreen', border: 'border-emerald-200', text: 'text-emerald-900' },
+            { bg: 'bg-pastelMint', border: 'border-teal-200', text: 'text-teal-900' },
+            { bg: 'bg-pastelPurple', border: 'border-purple-200', text: 'text-purple-900' },
+            { bg: 'bg-pastelPink', border: 'border-pink-200', text: 'text-pink-900' }
+        ];
+
+        // Dictionary of words with Emojis for each Syllables
+        const SYLLABLE_DICTIONARY = {
+            'MA': { word: 'Manzana', emoji: '🍎' },
+            'ME': { word: 'Mesa', emoji: '🪑' },
+            'MI': { word: 'Miel', emoji: '🍯' },
+            'MO': { word: 'Mono', emoji: '🐒' },
+            'MU': { word: 'Muñeca', emoji: '🪆' },
+
+            'PA': { word: 'Pato', emoji: '🦆' },
+            'PE': { word: 'Pelota', emoji: '⚽' },
+            'PI': { word: 'Piña', emoji: '🍍' },
+            'PO': { word: 'Pollo', emoji: '🐥' },
+            'PU': { word: 'Puerta', emoji: '🚪' },
+
+            'SA': { word: 'Sapo', emoji: '🐸' },
+            'SE': { word: 'Serpiente', emoji: '🐍' },
+            'SI': { word: 'Silla', emoji: '🪑' },
+            'SO': { word: 'Sol', emoji: '☀️' },
+            'SU': { word: 'Submarino', emoji: '🚤' },
+
+            'LA': { word: 'Lápiz', emoji: '✏️' },
+            'LE': { word: 'León', emoji: '🦁' },
+            'LI': { word: 'Limón', emoji: '🍋' },
+            'LO': { word: 'Loro', emoji: '🦜' },
+            'LU': { word: 'Luna', emoji: '🌙' },
+
+            'TA': { word: 'Taza', emoji: '☕' },
+            'TE': { word: 'Tenedor', emoji: '🍴' },
+            'TI': { word: 'Tigre', emoji: '🐯' },
+            'TO': { word: 'Tomate', emoji: '🍅' },
+            'TU': { word: 'Tucán', emoji: '🦜' },
+
+            'DA': { word: 'Dado', emoji: '🎲' },
+            'DE': { word: 'Dedo', emoji: '👆' },
+            'DI': { word: 'Dinosaurio', emoji: '🦕' },
+            'DO': { word: 'Delfín', emoji: '🐬' },
+            'DU': { word: 'Dulce', emoji: '🍬' },
+
+            'NA': { word: 'Naranja', emoji: '🍊' },
+            'NE': { word: 'Nieve', emoji: '❄️' },
+            'NI': { word: 'Nido', emoji: '🪹' },
+            'NO': { word: 'Noche', emoji: '🌌' },
+            'NU': { word: 'Nube', emoji: '☁️' },
+
+            'RA': { word: 'Ratón', emoji: '🐭' },
+            'RE': { word: 'Regalito', emoji: '🎁' },
+            'RI': { word: 'Río', emoji: '🌊' },
+            'RO': { word: 'Rosa', emoji: '🌹' },
+            'RU': { word: 'Rueda', emoji: '🛞' },
+
+            'CA': { word: 'Casa', emoji: '🏠' },
+            'CE': { word: 'Cebra', emoji: '🦓' },
+            'CI': { word: 'Cisne', emoji: '🦢' },
+            'CO': { word: 'Conejo', emoji: '🐰' },
+            'CU': { word: 'Cuna', emoji: '🛏️' },
+
+            'FA': { word: 'Farol', emoji: '🏮' },
+            'FE': { word: 'Feliz', emoji: '😀' },
+            'FI': { word: 'Fiesta', emoji: '🎉' },
+            'FO': { word: 'Foca', emoji: '🦭' },
+            'FU': { word: 'Fuego', emoji: '🔥' },
+
+            'BA': { word: 'Ballena', emoji: '🐳' },
+            'BE': { word: 'Bebé', emoji: '👶' },
+            'BI': { word: 'Bici', emoji: '🚲' },
+            'BO': { word: 'Bota', emoji: '🥾' },
+            'BU': { word: 'Búho', emoji: '🦉' }
+        };
+
+        // Words for Section 3 (Builder)
+        const BUILDER_WORDS = [
+            { word: 'MAMA', syllables: ['MA', 'MA'], emoji: '👩', name: 'Mamá' },
+            'PAPA': { word: 'PAPA', syllables: ['PA', 'PA'], emoji: '🥔', name: 'Papa' },
+            { word: 'PUMA', syllables: ['PU', 'MA'], emoji: '🐆', name: 'Puma' },
+            { word: 'LUNA', syllables: ['LU', 'NA'], emoji: '🌙', name: 'Luna' },
+            { word: 'MAPA', syllables: ['MA', 'PA'], emoji: '🗺️', name: 'Mapa' },
+            { word: 'LIMA', syllables: ['LI', 'MA'], emoji: '🍋', name: 'Lima' },
+            { word: 'SOPA', syllables: ['SO', 'PA'], emoji: '🍲', name: 'Sopa' },
+            { word: 'PELO', syllables: ['PE', 'LO'], emoji: '💇', name: 'Pelo' },
+            { word: 'MESA', syllables: ['ME', 'SA'], emoji: '🪑', name: 'Mesa' },
+            { word: 'TOMATE', syllables: ['TO', 'MA'], emoji: '🍅', name: 'Toma' }
+        ];
+
+        /* APP STATE */
+        let currentConsonant = 'M';
+        let currentTab = 'explorer';
+        let stars = 0;
+        let audioEnabled = true;
+
+        // Find Game state
+        let currentTargetSyllable = '';
+
+        // Builder Game state
+        let currentBuilderIndex = 0;
+        let builderSlots = ['', ''];
+
+        // Web Speech Synth Setup
+        const synth = window.speechSynthesis;
+
+        function speak(text) {
+            if (!audioEnabled || !('speechSynthesis' in window)) return;
+            
+            // Cancel current speech if any
+            synth.cancel();
+
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'es-ES';
+            utterance.rate = 0.85; // Slightly slower for clear child comprehension
+            utterance.pitch = 1.1;  // Cheerful higher pitch for kids
+
+            // Try picking a friendly Spanish voice if available
+            const voices = synth.getVoices();
+            const esVoice = voices.find(v => v.lang.includes('es'));
+            if (esVoice) utterance.voice = esVoice;
+
+            synth.speak(utterance);
+        }
+
+        window.onload = function() {
+            renderConsonantsBar();
+            loadConsonant(currentConsonant);
+            initBuilderGame();
+
+            // Pre-load synth voices
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.onvoiceschanged = () => synth.getVoices();
+            }
+        };
+
+        function toggleAudio() {
+            audioEnabled = !audioEnabled;
+            const icon = document.getElementById('audio-icon');
+            const btn = document.getElementById('btn-audio');
+            if (audioEnabled) {
+                icon.className = 'fa-solid fa-volume-high text-xl text-emerald-600';
+                btn.className = 'bg-pastelGreen text-slate-700 p-3 sm:px-4 sm:py-2 rounded-2xl font-bold flex items-center space-x-2 shadow-md transition active:scale-95';
+                speak("¡Sonido activado!");
+            } else {
+                icon.className = 'fa-solid fa-volume-xmark text-xl text-rose-500';
+                btn.className = 'bg-rose-100 text-slate-700 p-3 sm:px-4 sm:py-2 rounded-2xl font-bold flex items-center space-x-2 shadow-md transition active:scale-95';
+            }
+        }
+
+        function renderConsonantsBar() {
+            const container = document.getElementById('consonants-bar');
+            container.innerHTML = '';
+
+            CONSONANTS.forEach((c, index) => {
+                const color = PASTEL_COLORS[index % PASTEL_COLORS.length];
+                const btn = document.createElement('button');
+                btn.id = `btn-c-${c}`;
+                btn.className = `${color.bg} ${color.text} ${color.border} border-2 text-2xl sm:text-3xl font-extrabold w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center shadow-md switch-card shrink-0`;
+                btn.innerText = c;
+                btn.onclick = () => {
+                    currentConsonant = c;
+                    loadConsonant(c);
+                    speak(`Letra ${c}`);
+                };
+                container.appendChild(btn);
+            });
+        }
+
+        function highlightActiveConsonant() {
+            CONSONANTS.forEach(c => {
+                const btn = document.getElementById(`btn-c-${c}`);
+                if (!btn) return;
+                if (c === currentConsonant) {
+                    btn.classList.add('ring-4', 'ring-purple-400', 'scale-110');
+                } else {
+                    btn.classList.remove('ring-4', 'ring-purple-400', 'scale-110');
+                }
+            });
+            document.getElementById('current-consonant-badge').innerText = `Letra ${currentConsonant}`;
+        }
+
+        function loadConsonant(c) {
+            highlightActiveConsonant();
+            if (currentTab === 'explorer') {
+                renderExplorerGrid();
+            } else if (currentTab === 'find') {
+                initFindGame();
+            }
+        }
+
+        function switchTab(tab) {
+            currentTab = tab;
+            
+            // Tab Buttons appearance
+            const tabs = ['explorer', 'find', 'builder'];
+            tabs.forEach(t => {
+                const btn = document.getElementById(`tab-${t}`);
+                const sec = document.getElementById(`sec-${t}`);
+                if (t === tab) {
+                    btn.className = 'tab-btn flex-1 max-w-[200px] py-3 px-2 rounded-2xl font-bold text-sm sm:text-base md:text-lg flex flex-col sm:flex-row items-center justify-center space-y-1 sm:space-y-0 sm:space-x-2 shadow-md transition-all bg-pastelPink text-purple-900 border-2 border-white scale-105';
+                    sec.classList.remove('hidden');
+                } else {
+                    btn.className = 'tab-btn flex-1 max-w-[200px] py-3 px-2 rounded-2xl font-bold text-sm sm:text-base md:text-lg flex flex-col sm:flex-row items-center justify-center space-y-1 sm:space-y-0 sm:space-x-2 shadow-md transition-all bg-white text-slate-600 border-2 border-slate-100 opacity-80';
+                    sec.classList.add('hidden');
+                }
+            });
+
+            if (tab === 'explorer') {
+                renderExplorerGrid();
+            } else if (tab === 'find') {
+                initFindGame();
+            } else if (tab === 'builder') {
+                initBuilderGame();
+            }
+        }
+
+        let currentDetailSyllable = '';
+
+        function renderExplorerGrid() {
+            const grid = document.getElementById('syllable-cards-grid');
+            grid.innerHTML = '';
+            document.getElementById('explorer-detail-box').classList.add('hidden');
+
+            VOWELS.forEach((vowel, index) => {
+                const syllable = currentConsonant + vowel;
+                const info = SYLLABLE_DICTIONARY[syllable] || { word: syllable, emoji: '✨' };
+                const color = PASTEL_COLORS[index % PASTEL_COLORS.length];
+
+                const card = document.createElement('div');
+                card.className = `${color.bg} ${color.border} border-4 rounded-3xl p-4 sm:p-5 flex flex-col items-center justify-between cursor-pointer switch-card shadow-lg hover:shadow-2xl`;
+                card.onclick = () => selectExplorerSyllable(syllable, info);
+
+                card.innerHTML = `
+                    <span class="text-xs font-bold ${color.text} opacity-70 tracking-widest">${currentConsonant} + ${vowel}</span>
+                    <span class="text-5xl sm:text-6xl font-black ${color.text} my-2">${syllable}</span>
+                    <span class="text-3xl">${info.emoji}</span>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function selectExplorerSyllable(syllable, info) {
+            currentDetailSyllable = syllable;
+            const detailBox = document.getElementById('explorer-detail-box');
+            detailBox.classList.remove('hidden');
+
+            document.getElementById('explorer-emoji').innerText = info.emoji;
+            document.getElementById('explorer-syllable-highlight').innerText = syllable;
+            document.getElementById('explorer-word').innerText = info.word;
+            document.getElementById('explorer-syllable-text').innerText = syllable;
+
+            speak(`${syllable}. ${info.word}`);
+        }
+
+        function speakCurrentWord() {
+            if (currentDetailSyllable && SYLLABLE_DICTIONARY[currentDetailSyllable]) {
+                const info = SYLLABLE_DICTIONARY[currentDetailSyllable];
+                speak(`${currentDetailSyllable}. ${info.word}`);
+            }
+        }
+
+        function initFindGame() {
+            const syllables = VOWELS.map(v => currentConsonant + v);
+            currentTargetSyllable = syllables[Math.floor(Math.random() * syllables.length)];
+
+            document.getElementById('find-prompt-text').innerHTML = `
+                ¿Dónde está la sílaba <span class="text-pink-600 underline decoration-wavy font-black">${currentTargetSyllable}</span>?
+            `;
+
+            playFindPromptAudio();
+
+            // Options generation (4 options, 1 correct)
+            const options = [currentTargetSyllable];
+            while (options.length < 4) {
+                // generate distractor
+                const randomVowel = VOWELS[Math.floor(Math.random() * VOWELS.length)];
+                const distractor = currentConsonant + randomVowel;
+                if (!options.includes(distractor)) {
+                    options.push(distractor);
+                }
+            }
+
+            // Shuffle options
+            options.sort(() => Math.random() - 0.5);
+
+            const grid = document.getElementById('find-options-grid');
+            grid.innerHTML = '';
+
+            options.forEach((syl, index) => {
+                const color = PASTEL_COLORS[index % PASTEL_COLORS.length];
+                const btn = document.createElement('button');
+                btn.className = `${color.bg} ${color.border} border-4 rounded-3xl p-6 sm:p-8 text-5xl sm:text-6xl font-black ${color.text} switch-card shadow-lg flex items-center justify-center`;
+                btn.innerText = syl;
+                btn.onclick = () => checkFindAnswer(syl, btn);
+                grid.appendChild(btn);
+            });
+        }
+
+        function playFindPromptAudio() {
+            speak(`Elena, ¿dónde está la sílaba ${currentTargetSyllable}?`);
+        }
+
+        function checkFindAnswer(selected, btnElement) {
+            speak(selected);
+            if (selected === currentTargetSyllable) {
+                // Correct!
+                btnElement.classList.add('ring-8', 'ring-emerald-400');
+                triggerSuccess("¡Súper Elena!", `¡Encontraste la sílaba ${currentTargetSyllable}!`);
+                setTimeout(() => {
+                    initFindGame();
+                }, 1800);
+            } else {
+                // Incorrect feedback animation
+                btnElement.classList.add('animate-shake');
+                speak(`Esa es ${selected}. ¡Inténtalo de nuevo, Elena!`);
+                setTimeout(() => {
+                    btnElement.classList.remove('animate-shake');
+                }, 500);
+            }
+        }
+
+        function initBuilderGame() {
+            const currentItem = BUILDER_WORDS[currentBuilderIndex % BUILDER_WORDS.length];
+            builderSlots = ['', ''];
+
+            document.getElementById('builder-target-emoji').innerText = currentItem.emoji;
+            document.getElementById('builder-target-name').innerText = currentItem.name;
+
+            document.getElementById('slot-1').innerText = '?';
+            document.getElementById('slot-1').className = "w-20 h-20 sm:w-24 sm:h-24 bg-slate-100 border-4 border-dashed border-slate-300 rounded-2xl flex items-center justify-center text-3xl sm:text-4xl font-black text-slate-700 shadow-inner";
+            
+            document.getElementById('slot-2').innerText = '?';
+            document.getElementById('slot-2').className = "w-20 h-20 sm:w-24 sm:h-24 bg-slate-100 border-4 border-dashed border-slate-300 rounded-2xl flex items-center justify-center text-3xl sm:text-4xl font-black text-slate-700 shadow-inner";
+
+            // Syllable bank generation (Target syllables + 2 extra distractors)
+            let bank = [...currentItem.syllables];
+            const extraVowels = ['A', 'E', 'O'];
+            while (bank.length < 4) {
+                const randomSyl = CONSONANTS[Math.floor(Math.random() * CONSONANTS.length)] + extraVowels[Math.floor(Math.random() * extraVowels.length)];
+                if (!bank.includes(randomSyl)) {
+                    bank.push(randomSyl);
+                }
+            }
+            bank.sort(() => Math.random() - 0.5);
+
+            const bankContainer = document.getElementById('builder-syllable-bank');
+            bankContainer.innerHTML = '';
+
+            bank.forEach((syl, index) => {
+                const color = PASTEL_COLORS[index % PASTEL_COLORS.length];
+                const btn = document.createElement('button');
+                btn.className = `${color.bg} ${color.border} border-3 rounded-2xl py-4 px-6 text-3xl sm:text-4xl font-black ${color.text} switch-card shadow-md`;
+                btn.innerText = syl;
+                btn.onclick = () => selectBuilderSyllable(syl);
+                bankContainer.appendChild(btn);
+            });
+
+            speak(`Arma la palabra ${currentItem.name}`);
+        }
+
+        function selectBuilderSyllable(syl) {
+            speak(syl);
+
+            if (builderSlots[0] === '') {
+                builderSlots[0] = syl;
+                const slot1 = document.getElementById('slot-1');
+                slot1.innerText = syl;
+                slot1.className = "w-20 h-20 sm:w-24 sm:h-24 bg-pastelPink border-4 border-pink-300 rounded-2xl flex items-center justify-center text-3xl sm:text-4xl font-black text-purple-900 shadow-md animate-bounce-once";
+            } else if (builderSlots[1] === '') {
+                builderSlots[1] = syl;
+                const slot2 = document.getElementById('slot-2');
+                slot2.innerText = syl;
+                slot2.className = "w-20 h-20 sm:w-24 sm:h-24 bg-pastelMint border-4 border-teal-300 rounded-2xl flex items-center justify-center text-3xl sm:text-4xl font-black text-teal-900 shadow-md animate-bounce-once";
+
+                // Check complete word
+                checkBuilderWord();
+            }
+        }
+
+        function checkBuilderWord() {
+            const currentItem = BUILDER_WORDS[currentBuilderIndex % BUILDER_WORDS.length];
+            const formedWord = builderSlots.join('');
+            const targetWord = currentItem.syllables.join('');
+
+            if (formedWord === targetWord) {
+                setTimeout(() => {
+                    speak(`¡Excelente! Formaste ${currentItem.name}`);
+                    triggerSuccess("¡Increíble Elena!", `¡Formaste la palabra ${currentItem.name}!`);
+                    currentBuilderIndex++;
+                    setTimeout(() => {
+                        initBuilderGame();
+                    }, 1800);
+                }, 400);
+            } else {
+                setTimeout(() => {
+                    speak("¡Ups! Inténtalo de nuevo");
+                    resetBuilder();
+                }, 600);
+            }
+        }
+
+        function resetBuilder() {
+            builderSlots = ['', ''];
+            document.getElementById('slot-1').innerText = '?';
+            document.getElementById('slot-1').className = "w-20 h-20 sm:w-24 sm:h-24 bg-slate-100 border-4 border-dashed border-slate-300 rounded-2xl flex items-center justify-center text-3xl sm:text-4xl font-black text-slate-700 shadow-inner";
+            
+            document.getElementById('slot-2').innerText = '?';
+            document.getElementById('slot-2').className = "w-20 h-20 sm:w-24 sm:h-24 bg-slate-100 border-4 border-dashed border-slate-300 rounded-2xl flex items-center justify-center text-3xl sm:text-4xl font-black text-slate-700 shadow-inner";
+        }
+
+        function triggerSuccess(title, subtitle) {
+            // Add stars
+            stars += 1;
+            document.getElementById('star-count').innerText = stars;
+
+            // Launch Confetti
+            if (typeof confetti === 'function') {
+                confetti({
+                    particleCount: 80,
+                    spread: 70,
+                    origin: { y: 0.6 },
+                    colors: ['#FF9AA2', '#FFB7B2', '#FFDAC1', '#E2F0CB', '#B5EAD7', '#C7CEEA']
+                });
+            }
+
+            // Show Popup Modal
+            document.getElementById('reward-title').innerText = title;
+            document.getElementById('reward-subtitle').innerText = subtitle;
+            document.getElementById('reward-modal').classList.remove('hidden');
+        }
+
+        function closeRewardModal() {
+            document.getElementById('reward-modal').classList.add('hidden');
+        }
+    </script>
 </body>
 </html>
