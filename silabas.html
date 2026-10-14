@@ -1,288 +1,333 @@
-<script type="text/babel">
-    const { useState, useEffect, useCallback } = React;
-    
-    // Componentes simples de iconos usando SVG para evitar dependencias externas rotas
-    const RotateCcw = ({ size = 24 }) => (
-        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
-    );
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Juego de Sílabas Mágico</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Babel para compilar JSX en el navegador -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="bg-slate-900 m-0 p-0">
+    <div id="root"></div>
 
-    const Trophy = ({ size = 24 }) => (
-        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
-    );
+    <script type="text/babel">
+        const { useState, useEffect, useCallback } = React;
+        
+        // Iconos SVG sencillos
+        const RotateCcw = ({ size = 24 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+        );
 
-    const ALL_SYLLABLES = [
-      'LA', 'LE', 'LI', 'LO', 'LU',
-      'MA', 'ME', 'MI', 'MO', 'MU',
-      'PA', 'PE', 'PI', 'PO', 'PU',
-      'SA', 'SE', 'SI', 'SO', 'SU',
-      'TA', 'TE', 'TI', 'TO', 'TU',
-      'CA', 'CO', 'CU',
-      'DA', 'DE', 'DI', 'DO', 'DU',
-      'NA', 'NE', 'NI', 'NO', 'NU',
-      'BA', 'BE', 'BI', 'BO', 'BU',
-      'FA', 'FE', 'FI', 'FO', 'FU',
-      'ZA', 'ZE', 'ZI', 'ZO', 'ZU'
-    ];
+        const Trophy = ({ size = 24 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+        );
 
-    const GAME_CONFIGS = {
-      12: { pairs: 6, cols: 'grid-cols-3', label: '12 Cartas' },
-      16: { pairs: 8, cols: 'grid-cols-4', label: '16 Cartas' },
-      20: { pairs: 10, cols: 'grid-cols-4', label: '20 Cartas' }
-    };
+        const ALL_SYLLABLES = [
+          'LA', 'LE', 'LI', 'LO', 'LU',
+          'MA', 'ME', 'MI', 'MO', 'MU',
+          'PA', 'PE', 'PI', 'PO', 'PU',
+          'SA', 'SE', 'SI', 'SO', 'SU',
+          'TA', 'TE', 'TI', 'TO', 'TU',
+          'CA', 'CO', 'CU',
+          'DA', 'DE', 'DI', 'DO', 'DU',
+          'NA', 'NE', 'NI', 'NO', 'NU',
+          'BA', 'BE', 'BI', 'BO', 'BU',
+          'FA', 'FE', 'FI', 'FO', 'FU',
+          'ZA', 'ZE', 'ZI', 'ZO', 'ZU'
+        ];
 
-    function App() {
-      const [totalCardsNum, setTotalCardsNum] = useState(12);
-      const [cards, setCards] = useState([]);
-      const [flippedIndices, setFlippedIndices] = useState([]);
-      const [removedPairs, setRemovedPairs] = useState([]);
-      const [currentPlayer, setCurrentPlayer] = useState(1);
-      const [p1Score, setP1Score] = useState(0);
-      const [p2Score, setP2Score] = useState(0);
-      const [isWon, setIsWon] = useState(false);
-      const [isProcessing, setIsProcessing] = useState(false);
+        // Paleta de colores vivos para la cara descubierta de las cartas
+        const CARD_COLORS = [
+          'bg-gradient-to-br from-pink-500 to-rose-600 border-rose-300',
+          'bg-gradient-to-br from-purple-500 to-indigo-600 border-indigo-300',
+          'bg-gradient-to-br from-amber-400 to-orange-500 border-amber-200',
+          'bg-gradient-to-br from-emerald-400 to-teal-600 border-emerald-200',
+          'bg-gradient-to-br from-cyan-400 to-blue-600 border-cyan-200',
+          'bg-gradient-to-br from-fuchsia-500 to-pink-600 border-fuchsia-200',
+          'bg-gradient-to-br from-lime-400 to-green-600 border-lime-200',
+          'bg-gradient-to-br from-violet-500 to-purple-700 border-violet-200',
+          'bg-gradient-to-br from-sky-400 to-blue-700 border-sky-200',
+          'bg-gradient-to-br from-red-500 to-rose-700 border-red-200'
+        ];
 
-      const startNewGame = useCallback(() => {
-        const config = GAME_CONFIGS[totalCardsNum];
-        const numPairs = config.pairs;
+        const GAME_CONFIGS = {
+          12: { pairs: 6, cols: 'grid-cols-3', label: '12 Cartas' },
+          16: { pairs: 8, cols: 'grid-cols-4', label: '16 Cartas' },
+          20: { pairs: 10, cols: 'grid-cols-4', label: '20 Cartas' }
+        };
 
-        const shuffledSyllables = [...ALL_SYLLABLES]
-          .sort(() => 0.5 - Math.random())
-          .slice(0, numPairs);
+        function App() {
+          const [totalCardsNum, setTotalCardsNum] = useState(12);
+          const [cards, setCards] = useState([]);
+          const [flippedIndices, setFlippedIndices] = useState([]);
+          const [removedPairs, setRemovedPairs] = useState([]);
+          const [currentPlayer, setCurrentPlayer] = useState(1);
+          const [p1Score, setP1Score] = useState(0);
+          const [p2Score, setP2Score] = useState(0);
+          const [isWon, setIsWon] = useState(false);
+          const [isProcessing, setIsProcessing] = useState(false);
 
-        const newCardList = [];
-        shuffledSyllables.forEach((syllable) => {
-          newCardList.push({
-            id: `${syllable}-1`,
-            pairId: syllable,
-            syllable: syllable
-          });
-          newCardList.push({
-            id: `${syllable}-2`,
-            pairId: syllable,
-            syllable: syllable
-          });
-        });
+          const startNewGame = useCallback(() => {
+            const config = GAME_CONFIGS[totalCardsNum];
+            const numPairs = config.pairs;
 
-        newCardList.sort(() => 0.5 - Math.random());
+            const shuffledSyllables = [...ALL_SYLLABLES]
+              .sort(() => 0.5 - Math.random())
+              .slice(0, numPairs);
 
-        setCards(newCardList);
-        setFlippedIndices([]);
-        setRemovedPairs([]);
-        setP1Score(0);
-        setP2Score(0);
-        setCurrentPlayer(1);
-        setIsWon(false);
-        setIsProcessing(false);
-      }, [totalCardsNum]);
+            // Asignar un color único a cada sílaba
+            const syllableColorMap = {};
+            const shuffledColors = [...CARD_COLORS].sort(() => 0.5 - Math.random());
+            shuffledSyllables.forEach((syllable, idx) => {
+              syllableColorMap[syllable] = shuffledColors[idx % shuffledColors.length];
+            });
 
-      useEffect(() => {
-        startNewGame();
-      }, [totalCardsNum, startNewGame]);
+            const newCardList = [];
+            shuffledSyllables.forEach((syllable) => {
+              const colorClass = syllableColorMap[syllable];
+              newCardList.push({
+                id: `${syllable}-1`,
+                pairId: syllable,
+                syllable: syllable,
+                colorClass: colorClass
+              });
+              newCardList.push({
+                id: `${syllable}-2`,
+                pairId: syllable,
+                syllable: syllable,
+                colorClass: colorClass
+              });
+            });
 
-      const handleCardClick = (index) => {
-        if (
-          isProcessing ||
-          flippedIndices.includes(index) ||
-          removedPairs.includes(cards[index].pairId)
-        ) {
-          return;
-        }
+            newCardList.sort(() => 0.5 - Math.random());
 
-        const newFlipped = [...flippedIndices, index];
-        setFlippedIndices(newFlipped);
+            setCards(newCardList);
+            setFlippedIndices([]);
+            setRemovedPairs([]);
+            setP1Score(0);
+            setP2Score(0);
+            setCurrentPlayer(1);
+            setIsWon(false);
+            setIsProcessing(false);
+          }, [totalCardsNum]);
 
-        if (newFlipped.length === 2) {
-          setIsProcessing(true);
-          const firstCard = cards[newFlipped[0]];
-          const secondCard = cards[newFlipped[1]];
+          useEffect(() => {
+            startNewGame();
+          }, [totalCardsNum, startNewGame]);
 
-          if (firstCard.pairId === secondCard.pairId) {
-            setTimeout(() => {
-              setRemovedPairs((prev) => [...prev, firstCard.pairId]);
-              setFlippedIndices([]);
+          const handleCardClick = (index) => {
+            if (
+              isProcessing ||
+              flippedIndices.includes(index) ||
+              removedPairs.includes(cards[index].pairId)
+            ) {
+              return;
+            }
 
-              if (currentPlayer === 1) {
-                setP1Score((s) => s + 1);
-              } else {
-                setP2Score((s) => s + 1);
-              }
+            const newFlipped = [...flippedIndices, index];
+            setFlippedIndices(newFlipped);
 
-              setIsProcessing(false);
-            }, 400);
-          } else {
-            setTimeout(() => {
-              setFlippedIndices([]);
-              setCurrentPlayer((prev) => (prev === 1 ? 2 : 1));
-              setIsProcessing(false);
-            }, 800);
-          }
-        }
-      };
+            if (newFlipped.length === 2) {
+              setIsProcessing(true);
+              const firstCard = cards[newFlipped[0]];
+              const secondCard = cards[newFlipped[1]];
 
-      useEffect(() => {
-        const totalPairs = GAME_CONFIGS[totalCardsNum].pairs;
-        if (removedPairs.length === totalPairs && totalPairs > 0) {
-          setIsWon(true);
-        }
-      }, [removedPairs, totalCardsNum]);
+              if (firstCard.pairId === secondCard.pairId) {
+                setTimeout(() => {
+                  setRemovedPairs((prev) => [...prev, firstCard.pairId]);
+                  setFlippedIndices([]);
 
-      const getWinnerText = () => {
-        if (p1Score > p2Score) return '¡GANA JUGADOR 1!';
-        if (p2Score > p1Score) return '¡GANA JUGADOR 2!';
-        return '¡EMPATE!';
-      };
-
-      return (
-        <div className="w-full h-screen font-sans select-none flex flex-col justify-between overflow-hidden relative bg-gradient-to-r from-[#FF8C69] via-[#FF758C] to-[#E84393]">
-          
-          {/* HEADER: JUGADOR 2 */}
-          <header className="rotate-180 bg-[#1E272C] text-white p-2.5 border-b-4 border-black flex items-center justify-between shadow-lg">
-            <div className="flex items-center gap-2">
-              <div className="w-9 h-9 rounded-xl bg-[#00D2D3] border-2 border-black flex items-center justify-center font-black text-black text-sm shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                J2
-              </div>
-              <div>
-                <div className="text-[10px] font-black text-[#00D2D3] uppercase tracking-wider">
-                  JUGADOR 2
-                </div>
-                <div className="text-base font-black text-white leading-none">
-                  {p2Score} {p2Score === 1 ? 'Punto' : 'Puntos'}
-                </div>
-              </div>
-            </div>
-
-            {currentPlayer === 2 && !isWon && (
-              <div className="bg-[#FF9F43] text-black border-2 border-black text-xs font-black px-3 py-1 rounded-full shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] animate-bounce">
-                ¡TU TURNO!
-              </div>
-            )}
-          </header>
-
-          {/* CONTROLES */}
-          <div className="px-3 py-1.5 bg-[#2D3436] border-y-2 border-black flex items-center justify-between gap-2 z-10">
-            <div className="flex gap-1.5">
-              {[12, 16, 20].map((num) => (
-                <button
-                  key={num}
-                  onClick={() => setTotalCardsNum(num)}
-                  className={`px-3 py-1 rounded-lg text-xs font-black border-2 transition-transform active:scale-90 ${
-                    totalCardsNum === num
-                      ? 'bg-[#00D2D3] text-black border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
-                      : 'bg-white text-gray-800 border-black'
-                  }`}
-                >
-                  {num}
-                </button>
-              ))}
-            </div>
-
-            <button
-              onClick={startNewGame}
-              className="flex items-center gap-1 bg-[#FF6B6B] border-2 border-black text-black text-xs font-black px-3 py-1 rounded-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:scale-90"
-            >
-              <RotateCcw size={14} /> Reiniciar
-            </button>
-          </div>
-
-          {/* TABLERO */}
-          <main className="flex-1 p-3 flex items-center justify-center overflow-y-auto">
-            <div className="bg-[#9E6B47] border-4 border-black rounded-3xl p-3 shadow-[0_8px_0_0_rgba(0,0,0,0.3)] w-full max-w-xs sm:max-w-sm flex items-center justify-center">
-              <div className={`grid ${GAME_CONFIGS[totalCardsNum].cols} gap-2.5 w-full`}>
-                {cards.map((card, index) => {
-                  const isFlipped = flippedIndices.includes(index);
-                  const isRemoved = removedPairs.includes(card.pairId);
-
-                  if (isRemoved) {
-                    return (
-                      <div
-                        key={card.id}
-                        className="aspect-square w-full rounded-2xl bg-transparent border-2 border-dashed border-[#7A4E31]"
-                      />
-                    );
+                  if (currentPlayer === 1) {
+                    setP1Score((s) => s + 1);
+                  } else {
+                    setP2Score((s) => s + 1);
                   }
 
-                  return (
+                  setIsProcessing(false);
+                }, 500);
+              } else {
+                setTimeout(() => {
+                  setFlippedIndices([]);
+                  setCurrentPlayer((prev) => (prev === 1 ? 2 : 1));
+                  setIsProcessing(false);
+                }, 900);
+              }
+            }
+          };
+
+          useEffect(() => {
+            const totalPairs = GAME_CONFIGS[totalCardsNum].pairs;
+            if (removedPairs.length === totalPairs && totalPairs > 0) {
+              setIsWon(true);
+            }
+          }, [removedPairs, totalCardsNum]);
+
+          const getWinnerText = () => {
+            if (p1Score > p2Score) return '¡GANA JUGADOR 1!';
+            if (p2Score > p1Score) return '¡GANA JUGADOR 2!';
+            return '¡EMPATE!';
+          };
+
+          return (
+            <div className="w-full h-screen font-sans select-none flex flex-col justify-between overflow-hidden relative bg-gradient-to-r from-[#FF8C69] via-[#FF758C] to-[#E84393]">
+              
+              {/* HEADER: JUGADOR 2 */}
+              <header className="rotate-180 bg-[#1E272C] text-white p-2.5 border-b-4 border-black flex items-center justify-between shadow-lg">
+                <div className="flex items-center gap-2">
+                  <div className="w-9 h-9 rounded-xl bg-[#00D2D3] border-2 border-black flex items-center justify-center font-black text-black text-sm shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                    J2
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-black text-[#00D2D3] uppercase tracking-wider">
+                      JUGADOR 2
+                    </div>
+                    <div className="text-base font-black text-white leading-none">
+                      {p2Score} {p2Score === 1 ? 'Punto' : 'Puntos'}
+                    </div>
+                  </div>
+                </div>
+
+                {currentPlayer === 2 && !isWon && (
+                  <div className="bg-[#FF9F43] text-black border-2 border-black text-xs font-black px-3 py-1 rounded-full shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] animate-bounce">
+                    ¡TU TURNO!
+                  </div>
+                )}
+              </header>
+
+              {/* CONTROLES */}
+              <div className="px-3 py-1.5 bg-[#2D3436] border-y-2 border-black flex items-center justify-between gap-2 z-10">
+                <div className="flex gap-1.5">
+                  {[12, 16, 20].map((num) => (
                     <button
-                      key={card.id}
-                      onClick={() => handleCardClick(index)}
-                      className="aspect-square w-full relative transition-transform active:scale-95 focus:outline-none"
+                      key={num}
+                      onClick={() => setTotalCardsNum(num)}
+                      className={`px-3 py-1 rounded-lg text-xs font-black border-2 transition-transform active:scale-90 ${
+                        totalCardsNum === num
+                          ? 'bg-[#00D2D3] text-black border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
+                          : 'bg-white text-gray-800 border-black'
+                      }`}
                     >
-                      {!isFlipped ? (
-                        <div className="w-full h-full bg-[#29B6F6] border-4 border-white outline outline-2 outline-black rounded-2xl flex items-center justify-center shadow-[0_4px_0_0_rgba(0,0,0,0.25)]">
-                          <div className="w-full h-full rounded-xl border-2 border-[#81D4FA]" />
-                        </div>
-                      ) : (
-                        <div className="w-full h-full bg-white border-4 border-[#29B6F6] outline outline-2 outline-black rounded-2xl flex items-center justify-center shadow-[0_4px_0_0_rgba(0,0,0,0.25)]">
-                          <span className="text-2xl sm:text-3xl font-black text-black tracking-wider">
-                            {card.syllable}
-                          </span>
-                        </div>
-                      )}
+                      {num}
                     </button>
-                  );
-                })}
-              </div>
-            </div>
-          </main>
-
-          {/* FOOTER: JUGADOR 1 */}
-          <footer className="bg-[#1E272C] text-white p-2.5 border-t-4 border-black flex items-center justify-between shadow-lg">
-            <div className="flex items-center gap-2">
-              <div className="w-9 h-9 rounded-xl bg-[#FF6B6B] border-2 border-black flex items-center justify-center font-black text-black text-sm shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                J1
-              </div>
-              <div>
-                <div className="text-[10px] font-black text-[#FF6B6B] uppercase tracking-wider">
-                  JUGADOR 1
-                </div>
-                <div className="text-base font-black text-white leading-none">
-                  {p1Score} {p1Score === 1 ? 'Punto' : 'Puntos'}
-                </div>
-              </div>
-            </div>
-
-            {currentPlayer === 1 && !isWon && (
-              <div className="bg-[#FF9F43] text-black border-2 border-black text-xs font-black px-3 py-1 rounded-full shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] animate-bounce">
-                ¡TU TURNO!
-              </div>
-            )}
-          </footer>
-
-          {/* MODAL GANADOR */}
-          {isWon && (
-            <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-              <div className="bg-white border-4 border-black rounded-3xl p-6 max-w-xs w-full text-center shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
-                <div className="w-16 h-16 mx-auto bg-[#FF9F43] border-4 border-black rounded-2xl flex items-center justify-center text-black mb-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                  <Trophy size={36} />
-                </div>
-
-                <h2 className="text-2xl font-black text-black mb-1">
-                  {getWinnerText()}
-                </h2>
-
-                <div className="my-4 bg-[#F1F2F6] border-2 border-black rounded-2xl p-3 grid grid-cols-2 gap-2 text-sm">
-                  <div className="bg-[#FF6B6B] border-2 border-black p-2 rounded-xl text-black">
-                    <span className="block text-[10px] font-black uppercase">J1</span>
-                    <span className="text-xl font-black">{p1Score} pts</span>
-                  </div>
-                  <div className="bg-[#00D2D3] border-2 border-black p-2 rounded-xl text-black">
-                    <span className="block text-[10px] font-black uppercase">J2</span>
-                    <span className="text-xl font-black">{p2Score} pts</span>
-                  </div>
+                  ))}
                 </div>
 
                 <button
                   onClick={startNewGame}
-                  className="w-full py-3 bg-[#FF9F43] border-4 border-black text-black font-black rounded-2xl text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:scale-95 flex items-center justify-center gap-2"
+                  className="flex items-center gap-1 bg-[#FF6B6B] border-2 border-black text-black text-xs font-black px-3 py-1 rounded-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:scale-90"
                 >
-                  <RotateCcw size={18} /> JUGAR OTRA VEZ
+                  <RotateCcw size={14} /> Reiniciar
                 </button>
               </div>
-            </div>
-          )}
-        </div>
-      );
-    }
 
-    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
-</script>
+              {/* TABLERO */}
+              <main className="flex-1 p-3 flex items-center justify-center overflow-y-auto">
+                <div className="bg-[#9E6B47] border-4 border-black rounded-3xl p-3 shadow-[0_8px_0_0_rgba(0,0,0,0.3)] w-full max-w-xs sm:max-w-sm flex items-center justify-center">
+                  <div className={`grid ${GAME_CONFIGS[totalCardsNum].cols} gap-2.5 w-full`}>
+                    {cards.map((card, index) => {
+                      const isFlipped = flippedIndices.includes(index);
+                      const isRemoved = removedPairs.includes(card.pairId);
+
+                      if (isRemoved) {
+                        return (
+                          <div
+                            key={card.id}
+                            className="aspect-square w-full rounded-2xl bg-transparent border-2 border-dashed border-[#7A4E31]"
+                          />
+                        );
+                      }
+
+                      return (
+                        <button
+                          key={card.id}
+                          onClick={() => handleCardClick(index)}
+                          className={`aspect-square w-full relative transition-transform duration-500 transform active:scale-95 focus:outline-none ${
+                            currentPlayer === 2 ? 'rotate-180' : 'rotate-0'
+                          }`}
+                        >
+                          {!isFlipped ? (
+                            <div className="w-full h-full bg-[#29B6F6] border-4 border-white outline outline-2 outline-black rounded-2xl flex items-center justify-center shadow-[0_4px_0_0_rgba(0,0,0,0.25)]">
+                              <div className="w-full h-full rounded-xl border-2 border-[#81D4FA]" />
+                            </div>
+                          ) : (
+                            <div className={`w-full h-full ${card.colorClass} border-4 outline outline-2 outline-black rounded-2xl flex items-center justify-center shadow-[0_4px_0_0_rgba(0,0,0,0.3)] transition-all duration-300 scale-105`}>
+                              <span className="text-2xl sm:text-3xl font-black text-white drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] tracking-wider">
+                                {card.syllable}
+                              </span>
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </main>
+
+              {/* FOOTER: JUGADOR 1 */}
+              <footer className="bg-[#1E272C] text-white p-2.5 border-t-4 border-black flex items-center justify-between shadow-lg">
+                <div className="flex items-center gap-2">
+                  <div className="w-9 h-9 rounded-xl bg-[#FF6B6B] border-2 border-black flex items-center justify-center font-black text-black text-sm shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                    J1
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-black text-[#FF6B6B] uppercase tracking-wider">
+                      JUGADOR 1
+                    </div>
+                    <div className="text-base font-black text-white leading-none">
+                      {p1Score} {p1Score === 1 ? 'Punto' : 'Puntos'}
+                    </div>
+                  </div>
+                </div>
+
+                {currentPlayer === 1 && !isWon && (
+                  <div className="bg-[#FF9F43] text-black border-2 border-black text-xs font-black px-3 py-1 rounded-full shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] animate-bounce">
+                    ¡TU TURNO!
+                  </div>
+                )}
+              </footer>
+
+              {/* MODAL GANADOR */}
+              {isWon && (
+                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+                  <div className="bg-white border-4 border-black rounded-3xl p-6 max-w-xs w-full text-center shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+                    <div className="w-16 h-16 mx-auto bg-[#FF9F43] border-4 border-black rounded-2xl flex items-center justify-center text-black mb-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                      <Trophy size={36} />
+                    </div>
+
+                    <h2 className="text-2xl font-black text-black mb-1">
+                      {getWinnerText()}
+                    </h2>
+
+                    <div className="my-4 bg-[#F1F2F6] border-2 border-black rounded-2xl p-3 grid grid-cols-2 gap-2 text-sm">
+                      <div className="bg-[#FF6B6B] border-2 border-black p-2 rounded-xl text-black">
+                        <span className="block text-[10px] font-black uppercase">J1</span>
+                        <span className="text-xl font-black">{p1Score} pts</span>
+                      </div>
+                      <div className="bg-[#00D2D3] border-2 border-black p-2 rounded-xl text-black">
+                        <span className="block text-[10px] font-black uppercase">J2</span>
+                        <span className="text-xl font-black">{p2Score} pts</span>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={startNewGame}
+                      className="w-full py-3 bg-[#FF9F43] border-4 border-black text-black font-black rounded-2xl text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:scale-95 flex items-center justify-center gap-2"
+                    >
+                      <RotateCcw size={18} /> JUGAR OTRA VEZ
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        }
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+</html>
