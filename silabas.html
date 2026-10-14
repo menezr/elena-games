@@ -11,8 +11,9 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#1E272C">
 
+    <!-- Favicon e Icono de App móvil -->
     <link rel="icon" type="image/png" href="favicon.png">
-    <link rel="apple-touch-icon" href="favicon.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="favicon.png">
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -27,8 +28,9 @@
         touch-action: manipulation;
         -webkit-tap-highlight-color: transparent;
       }
-      .safe-pt { padding-top: max(1.75rem, env(safe-area-inset-top)); }
-      .safe-pb { padding-bottom: max(1.75rem, env(safe-area-inset-bottom)); }
+      /* Márgenes seguros ampliados para separar de la cámara/hora y la barra inferior */
+      .safe-pt { padding-top: max(2.25rem, env(safe-area-inset-top)); }
+      .safe-pb { padding-bottom: max(2.25rem, env(safe-area-inset-bottom)); }
 
       .perspective-1000 {
         perspective: 1000px;
@@ -197,7 +199,6 @@
             const newCardList = [];
             shuffledSyllables.forEach((syllable) => {
               const colorClass = syllableColorMap[syllable];
-              // Asignar una inclinación aleatoria sutil única a cada carta para darle un aspecto natural/desordenado
               const randomRotation = (Math.random() * 8 - 4).toFixed(1);
               const randomX = (Math.random() * 4 - 2).toFixed(1);
               const randomY = (Math.random() * 4 - 2).toFixed(1);
@@ -293,8 +294,8 @@
           return (
             <div className="w-full h-screen h-[100dvh] font-sans select-none flex flex-col justify-between overflow-hidden relative bg-gradient-to-r from-[#FF8C69] via-[#FF758C] to-[#E84393]">
               
-              {/* HEADER: JUGADOR 2 */}
-              <header className="w-full bg-[#1E272C] text-white px-6 py-2.5 safe-pt border-b-4 border-black flex items-center justify-between shadow-lg z-20">
+              {/* HEADER: JUGADOR 2 con margen superior seguro más amplio */}
+              <header className="w-full bg-[#1E272C] text-white px-6 py-3 safe-pt border-b-4 border-black flex items-center justify-between shadow-lg z-25">
                 <div className="flex items-center gap-2">
                   <div className="w-9 h-9 rounded-xl bg-[#00D2D3] border-2 border-black flex items-center justify-center font-black text-black text-sm shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                     J2
@@ -317,7 +318,7 @@
               </header>
 
               {/* CONTROLES */}
-              <div className="w-full px-4 py-1.5 bg-[#2D3436] border-y-2 border-black flex items-center justify-between gap-2 z-10">
+              <div className="w-full px-4 py-1.5 bg-[#2D3436] border-y-2 border-black flex items-center justify-between gap-2 z-20">
                 <div className="flex gap-1.5">
                   {[12, 16, 20].map((num) => (
                     <button
@@ -342,8 +343,8 @@
                 </button>
               </div>
 
-              {/* TABLERO: Cartas alargadas estilo naipe con leve giro orgánico */}
-              <main className="flex-1 p-2 sm:p-4 flex items-center justify-center overflow-hidden w-full h-full">
+              {/* TABLERO */}
+              <main className="flex-1 p-2 sm:p-3 flex items-center justify-center overflow-hidden w-full h-full">
                 <div className="bg-[#9E6B47] border-4 border-black rounded-3xl p-3 sm:p-4 shadow-[0_8px_0_0_rgba(0,0,0,0.3)] w-full h-full flex items-center justify-center max-w-md sm:max-w-lg">
                   <div className={`grid ${GAME_CONFIGS[totalCardsNum].cols} gap-3 sm:gap-4 w-full h-full items-center justify-items-center`}>
                     {cards.map((card, index) => {
@@ -368,7 +369,7 @@
                         >
                           <div className={`w-full h-full relative duration-500 transform-style-3d ${isFlipped ? 'rotate-y-180' : ''}`}>
                             
-                            {/* Dorso de la carta (más alargado tipo naipe) */}
+                            {/* Dorso de la carta */}
                             <div className="absolute inset-0 w-full h-full bg-[#29B6F6] border-4 border-white outline outline-2 outline-black rounded-xl flex items-center justify-center shadow-[0_4px_0_0_rgba(0,0,0,0.25)] backface-hidden">
                               <div className="w-[88%] h-[88%] rounded-lg border-2 border-[#81D4FA]" />
                             </div>
@@ -388,8 +389,8 @@
                 </div>
               </main>
 
-              {/* FOOTER: JUGADOR 1 */}
-              <footer className="w-full bg-[#1E272C] text-white px-6 py-2.5 safe-pb border-t-4 border-black flex items-center justify-between shadow-lg z-20">
+              {/* FOOTER: JUGADOR 1 con margen inferior seguro más amplio para elevarlo del borde */}
+              <footer className="w-full bg-[#1E272C] text-white px-6 py-3 safe-pb border-t-4 border-black flex items-center justify-between shadow-lg z-25">
                 <div className="flex items-center gap-2">
                   <div className="w-9 h-9 rounded-xl bg-[#FF6B6B] border-2 border-black flex items-center justify-center font-black text-black text-sm shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                     J1
