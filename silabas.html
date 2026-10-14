@@ -28,9 +28,14 @@
         touch-action: manipulation;
         -webkit-tap-highlight-color: transparent;
       }
-      /* Márgenes seguros ampliados para separar de la cámara/hora y la barra inferior */
-      .safe-pt { padding-top: max(2.25rem, env(safe-area-inset-top)); }
-      .safe-pb { padding-bottom: max(2.25rem, env(safe-area-inset-bottom)); }
+      /* Margen superior suficiente para librar la hora/batería de iOS en webapps */
+      .safe-pt { 
+        padding-top: max(3.5rem, calc(env(safe-area-inset-top) + 1.25rem)); 
+      }
+      /* Margen inferior seguro para la barra táctil */
+      .safe-pb { 
+        padding-bottom: max(1.75rem, env(safe-area-inset-bottom)); 
+      }
 
       .perspective-1000 {
         perspective: 1000px;
@@ -294,8 +299,8 @@
           return (
             <div className="w-full h-screen h-[100dvh] font-sans select-none flex flex-col justify-between overflow-hidden relative bg-gradient-to-r from-[#FF8C69] via-[#FF758C] to-[#E84393]">
               
-              {/* HEADER: JUGADOR 2 con margen superior seguro más amplio */}
-              <header className="w-full bg-[#1E272C] text-white px-6 py-3 safe-pt border-b-4 border-black flex items-center justify-between shadow-lg z-25">
+              {/* HEADER: JUGADOR 2 (Con px-8 y safe-pt extendido para librar hora/batería) */}
+              <header className="w-full bg-[#1E272C] text-white px-8 py-2.5 safe-pt border-b-4 border-black flex items-center justify-between shadow-lg z-25">
                 <div className="flex items-center gap-2">
                   <div className="w-9 h-9 rounded-xl bg-[#00D2D3] border-2 border-black flex items-center justify-center font-black text-black text-sm shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                     J2
@@ -318,7 +323,7 @@
               </header>
 
               {/* CONTROLES */}
-              <div className="w-full px-4 py-1.5 bg-[#2D3436] border-y-2 border-black flex items-center justify-between gap-2 z-20">
+              <div className="w-full px-6 py-1.5 bg-[#2D3436] border-y-2 border-black flex items-center justify-between gap-2 z-20">
                 <div className="flex gap-1.5">
                   {[12, 16, 20].map((num) => (
                     <button
@@ -389,8 +394,8 @@
                 </div>
               </main>
 
-              {/* FOOTER: JUGADOR 1 con margen inferior seguro más amplio para elevarlo del borde */}
-              <footer className="w-full bg-[#1E272C] text-white px-6 py-3 safe-pb border-t-4 border-black flex items-center justify-between shadow-lg z-25">
+              {/* FOOTER: JUGADOR 1 */}
+              <footer className="w-full bg-[#1E272C] text-white px-8 py-2.5 safe-pb border-t-4 border-black flex items-center justify-between shadow-lg z-25">
                 <div className="flex items-center gap-2">
                   <div className="w-9 h-9 rounded-xl bg-[#FF6B6B] border-2 border-black flex items-center justify-center font-black text-black text-sm shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                     J1
