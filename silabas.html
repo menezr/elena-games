@@ -28,8 +28,6 @@
         touch-action: manipulation;
         -webkit-tap-highlight-color: transparent;
       }
-      /* Áreas seguras para teléfonos con notch/isla dinámica y barra inferior.
-         El !important evita que estilos utilitarios sobrescriban estos espacios. */
       html, body, #root {
         width: 100%;
         height: 100%;
@@ -49,7 +47,6 @@
         box-sizing: border-box;
         flex-shrink: 0;
       }
-      /* Mantiene las tarjetas del mismo tamaño y escala solo el texto. */
       .syllable-text {
         font-size: clamp(1.8rem, 7.5vw, 2.7rem);
         line-height: 1;
@@ -63,7 +60,6 @@
           padding-bottom: max(1rem, calc(env(safe-area-inset-bottom, 0px) + 0.35rem)) !important;
         }
       }
-
       .perspective-1000 {
         perspective: 1000px;
       }
@@ -182,6 +178,12 @@
           'ZA', 'ZE', 'ZI', 'ZO', 'ZU'
         ];
 
+        const ALL_LETTERS = [
+          'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J',
+          'K', 'L', 'M', 'N', 'Ñ', 'O', 'P', 'Q', 'R', 'S',
+          'T', 'U', 'V', 'W', 'X', 'Y', 'Z'
+        ];
+
         const CARD_COLORS = [
           'bg-gradient-to-br from-pink-500 to-rose-600 border-rose-300',
           'bg-gradient-to-br from-purple-500 to-indigo-600 border-indigo-300',
@@ -202,6 +204,10 @@
         };
 
         function App() {
+          const [inMenu, setInMenu] = useState(true);
+          const [numPlayers, setNumPlayers] = useState(1);
+          const [gameMode, setGameMode] = useState('syllables'); // 'syllables' o 'letters'
+
           const [totalCardsNum, setTotalCardsNum] = useState(12);
           const [cards, setCards] = useState([]);
           const [flippedIndices, setFlippedIndices] = useState([]);
@@ -218,34 +224,35 @@
             const config = GAME_CONFIGS[totalCardsNum];
             const numPairs = config.pairs;
 
-            const shuffledSyllables = [...ALL_SYLLABLES]
+            const sourceList = gameMode === 'syllables' ? ALL_SYLLABLES : ALL_LETTERS;
+            const shuffledItems = [...sourceList]
               .sort(() => 0.5 - Math.random())
               .slice(0, numPairs);
 
-            const syllableColorMap = {};
+            const itemColorMap = {};
             const shuffledColors = [...CARD_COLORS].sort(() => 0.5 - Math.random());
-            shuffledSyllables.forEach((syllable, idx) => {
-              syllableColorMap[syllable] = shuffledColors[idx % shuffledColors.length];
+            shuffledItems.forEach((item, idx) => {
+              itemColorMap[item] = shuffledColors[idx % shuffledColors.length];
             });
 
             const newCardList = [];
-            shuffledSyllables.forEach((syllable) => {
-              const colorClass = syllableColorMap[syllable];
+            shuffledItems.forEach((item) => {
+              const colorClass = itemColorMap[item];
               const randomRotation = (Math.random() * 8 - 4).toFixed(1);
               const randomX = (Math.random() * 4 - 2).toFixed(1);
               const randomY = (Math.random() * 4 - 2).toFixed(1);
 
               newCardList.push({ 
-                id: `${syllable}-1`, 
-                pairId: syllable, 
-                syllable, 
+                id: `${item}-1`, 
+                pairId: item, 
+                content: item, 
                 colorClass, 
                 transformStyle: `rotate(${randomRotation}deg) translate(${randomX}px, ${randomY}px)` 
               });
               newCardList.push({ 
-                id: `${syllable}-2`, 
-                pairId: syllable, 
-                syllable, 
+                id: `${item}-2`, 
+                pairId: item, 
+                content: item, 
                 colorClass, 
                 transformStyle: `rotate(${randomRotation * -1}deg) translate(${randomX * -1}px, ${randomY * -1}px)` 
               });
@@ -261,11 +268,13 @@
             setCurrentPlayer(1);
             setIsWon(false);
             setIsProcessing(false);
-          }, [totalCardsNum]);
+          }, [totalCardsNum, gameMode]);
 
           useEffect(() => {
-            startNewGame();
-          }, [totalCardsNum]);
+            if (!inMenu) {
+              startNewGame();
+            }
+          }, [totalCardsNum, gameMode, inMenu]);
 
           const handleCardClick = (index) => {
             if (
@@ -302,7 +311,10 @@
               } else {
                 setTimeout(() => {
                   setFlippedIndices([]);
-                  setCurrentPlayer((prev) => (prev === 1 ? 2 : 1));
+                  // Si es 1 jugador, no cambia de turno (o se queda en J1 siempre)
+                  if (numPlayers === 2) {
+                    setCurrentPlayer((prev) => (prev === 1 ? 2 : 1));
+                  }
                   setIsProcessing(false);
                 }, 800);
               }
@@ -318,36 +330,141 @@
           }, [removedPairs, totalCardsNum]);
 
           const getWinnerText = () => {
+            if (numPlayers === 1) return '¡EXCELENTE TRABAJO!';
             if (p1Score > p2Score) return '¡GANA JUGADOR 1!';
             if (p2Score > p1Score) return '¡GANA JUGADOR 2!';
             return '¡EMPATE!';
           };
 
+          // PANTALLA DE INICIO (MENÚ)
+          if (inMenu) {
+            return (
+              <div className="w-full h-screen h-[100dvh] font-sans select-none flex flex-col items-center justify-center p-6 bg-gradient-to-r from-[#FF8C69] via-[#FF758C] to-[#E84393] overflow-hidden">
+                <div className="bg-white border-4 border-black rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] flex flex-col gap-5">
+                  <div className="w-16 h-16 mx-auto bg-[#00D2D3] border-4 border-black rounded-2xl flex items-center justify-center text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                    <Trophy size={36} />
+                  </div>
+                  
+                  <h1 className="text-2xl sm:text-3xl font-black text-black leading-tight">
+                    Juego Mágico
+                  </h1>
+
+                  {/* Selección de Jugadores */}
+                  <div className="flex flex-col gap-1.5 text-left">
+                    <label className="text-xs font-black uppercase text-gray-700">Jugadores:</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => { playTap(); setNumPlayers(1); }}
+                        className={`py-2 rounded-xl text-sm font-black border-2 border-black transition-all ${
+                          numPlayers === 1 
+                            ? 'bg-[#FF6B6B] text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] scale-105' 
+                            : 'bg-gray-100 text-gray-600'
+                        }`}
+                      >
+                        1 Jugador
+                      </button>
+                      <button
+                        onClick={() => { playTap(); setNumPlayers(2); }}
+                        className={`py-2 rounded-xl text-sm font-black border-2 border-black transition-all ${
+                          numPlayers === 2 
+                            ? 'bg-[#00D2D3] text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] scale-105' 
+                            : 'bg-gray-100 text-gray-600'
+                        }`}
+                      >
+                        2 Jugadores
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Selección de Modo (Sílabas o Letras) */}
+                  <div className="flex flex-col gap-1.5 text-left">
+                    <label className="text-xs font-black uppercase text-gray-700">Modo de Juego:</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => { playTap(); setGameMode('syllables'); }}
+                        className={`py-2 rounded-xl text-sm font-black border-2 border-black transition-all ${
+                          gameMode === 'syllables' 
+                            ? 'bg-[#FF9F43] text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] scale-105' 
+                            : 'bg-gray-100 text-gray-600'
+                        }`}
+                      >
+                        Sílabas
+                      </button>
+                      <button
+                        onClick={() => { playTap(); setGameMode('letters'); }}
+                        className={`py-2 rounded-xl text-sm font-black border-2 border-black transition-all ${
+                          gameMode === 'letters' 
+                            ? 'bg-[#00D2D3] text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] scale-105' 
+                            : 'bg-gray-100 text-gray-600'
+                        }`}
+                      >
+                        Solo Letras
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Botón Jugar */}
+                  <button
+                    onClick={() => { playTap(); setInMenu(false); }}
+                    className="w-full py-3.5 bg-[#00D2D3] border-4 border-black text-black font-black rounded-2xl text-base shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:scale-95 mt-2"
+                  >
+                    ¡COMENZAR JUEGO!
+                  </button>
+                </div>
+              </div>
+            );
+          }
+
+          // PANTALLA DE JUEGO PRINCIPAL
           return (
             <div className="w-full h-screen h-[100dvh] font-sans select-none flex flex-col justify-between overflow-hidden relative bg-gradient-to-r from-[#FF8C69] via-[#FF758C] to-[#E84393]" style={{ minHeight: 0 }}>
               
-              {/* HEADER: JUGADOR 2 (Con px-8 y safe-pt extendido para librar hora/batería) */}
-              <header className="w-full bg-[#1E272C] text-white px-6 sm:px-8 pb-2.5 pt-2 safe-pt border-b-4 border-black flex items-center justify-between shadow-lg z-25">
-                <div className="flex items-center gap-2">
-                  <div className="w-9 h-9 rounded-xl bg-[#00D2D3] border-2 border-black flex items-center justify-center font-black text-black text-sm shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                    J2
-                  </div>
-                  <div>
-                    <div className="text-[10px] font-black text-[#00D2D3] uppercase tracking-wider">
-                      JUGADOR 2
+              {/* HEADER: JUGADOR 2 (Solo visible si son 2 jugadores) o indicador de turno */}
+              {numPlayers === 2 ? (
+                <header className="w-full bg-[#1E272C] text-white px-6 sm:px-8 pb-2.5 pt-2 safe-pt border-b-4 border-black flex items-center justify-between shadow-lg z-25">
+                  <div className="flex items-center gap-2">
+                    <div className="w-9 h-9 rounded-xl bg-[#00D2D3] border-2 border-black flex items-center justify-center font-black text-black text-sm shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                      J2
                     </div>
-                    <div className="text-base font-black text-white leading-none">
-                      {p2Score} {p2Score === 1 ? 'Punto' : 'Puntos'}
+                    <div>
+                      <div className="text-[10px] font-black text-[#00D2D3] uppercase tracking-wider">
+                        JUGADOR 2
+                      </div>
+                      <div className="text-base font-black text-white leading-none">
+                        {p2Score} {p2Score === 1 ? 'Punto' : 'Puntos'}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {currentPlayer === 2 && !isWon && (
-                  <div className="bg-[#FF9F43] text-black border-2 border-black text-xs font-black px-3 py-1 rounded-full shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] animate-bounce">
-                    ¡TU TURNO!
+                  {currentPlayer === 2 && !isWon && (
+                    <div className="bg-[#FF9F43] text-black border-2 border-black text-xs font-black px-3 py-1 rounded-full shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] animate-bounce">
+                      ¡TU TURNO!
+                    </div>
+                  )}
+                </header>
+              ) : (
+                <div className="w-full bg-[#1E272C] text-white px-6 sm:px-8 pb-2.5 pt-2 safe-pt border-b-4 border-black flex items-center justify-between shadow-lg z-25">
+                  <div className="flex items-center gap-2">
+                    <div className="w-9 h-9 rounded-xl bg-[#00D2D3] border-2 border-black flex items-center justify-center font-black text-black text-sm shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                      ⭐
+                    </div>
+                    <div>
+                      <div className="text-[10px] font-black text-[#00D2D3] uppercase tracking-wider">
+                        Progreso
+                      </div>
+                      <div className="text-base font-black text-white leading-none">
+                        {p1Score} de {GAME_CONFIGS[totalCardsNum].pairs} Pares
+                      </div>
+                    </div>
                   </div>
-                )}
-              </header>
+                  <button
+                    onClick={() => setInMenu(true)}
+                    className="bg-[#FF6B6B] text-black border-2 border-black text-xs font-black px-3 py-1 rounded-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:scale-90"
+                  >
+                    Menú
+                  </button>
+                </div>
+              )}
 
               {/* CONTROLES */}
               <div className="w-full px-6 py-1.5 bg-[#2D3436] border-y-2 border-black flex items-center justify-between gap-2 z-20">
@@ -367,12 +484,22 @@
                   ))}
                 </div>
 
-                <button
-                  onClick={startNewGame}
-                  className="flex items-center gap-1 bg-[#FF6B6B] border-2 border-black text-black text-xs font-black px-3 py-1 rounded-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:scale-90"
-                >
-                  <RotateCcw size={14} /> Reiniciar
-                </button>
+                <div className="flex gap-2">
+                  {numPlayers === 2 && (
+                    <button
+                      onClick={() => setInMenu(true)}
+                      className="bg-gray-200 border-2 border-black text-black text-xs font-black px-2.5 py-1 rounded-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:scale-90"
+                    >
+                      Menú
+                    </button>
+                  )}
+                  <button
+                    onClick={startNewGame}
+                    className="flex items-center gap-1 bg-[#FF6B6B] border-2 border-black text-black text-xs font-black px-3 py-1 rounded-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:scale-90"
+                  >
+                    <RotateCcw size={14} /> Reiniciar
+                  </button>
+                </div>
               </div>
 
               {/* TABLERO */}
@@ -409,7 +536,7 @@
                             {/* Frente de la carta */}
                             <div className={`absolute inset-0 w-full h-full ${card.colorClass} border-4 outline outline-2 outline-black rounded-xl flex items-center justify-center shadow-[0_4px_0_0_rgba(0,0,0,0.3)] backface-hidden rotate-y-180`}>
                               <span className="syllable-text font-black text-white drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] tracking-wider">
-                                {card.syllable}
+                                {card.content}
                               </span>
                             </div>
 
@@ -425,11 +552,11 @@
               <footer className="w-full bg-[#1E272C] text-white px-6 sm:px-8 pt-2 pb-2.5 safe-pb border-t-4 border-black flex items-center justify-between shadow-lg z-25">
                 <div className="flex items-center gap-2">
                   <div className="w-9 h-9 rounded-xl bg-[#FF6B6B] border-2 border-black flex items-center justify-center font-black text-black text-sm shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                    J1
+                    {numPlayers === 1 ? 'J' : 'J1'}
                   </div>
                   <div>
                     <div className="text-[10px] font-black text-[#FF6B6B] uppercase tracking-wider">
-                      JUGADOR 1
+                      {numPlayers === 1 ? 'Puntuación' : 'JUGADOR 1'}
                     </div>
                     <div className="text-base font-black text-white leading-none">
                       {p1Score} {p1Score === 1 ? 'Punto' : 'Puntos'}
@@ -437,7 +564,7 @@
                   </div>
                 </div>
 
-                {currentPlayer === 1 && !isWon && (
+                {numPlayers === 2 && currentPlayer === 1 && !isWon && (
                   <div className="bg-[#FF9F43] text-black border-2 border-black text-xs font-black px-3 py-1 rounded-full shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] animate-bounce">
                     ¡TU TURNO!
                   </div>
@@ -456,23 +583,38 @@
                       {getWinnerText()}
                     </h2>
 
-                    <div className="my-4 bg-[#F1F2F6] border-2 border-black rounded-2xl p-3 grid grid-cols-2 gap-2 text-sm">
-                      <div className="bg-[#FF6B6B] border-2 border-black p-2 rounded-xl text-black">
-                        <span className="block text-[10px] font-black uppercase">J1</span>
-                        <span className="text-xl font-black">{p1Score} pts</span>
+                    {numPlayers === 2 ? (
+                      <div className="my-4 bg-[#F1F2F6] border-2 border-black rounded-2xl p-3 grid grid-cols-2 gap-2 text-sm">
+                        <div className="bg-[#FF6B6B] border-2 border-black p-2 rounded-xl text-black">
+                          <span className="block text-[10px] font-black uppercase">J1</span>
+                          <span className="text-xl font-black">{p1Score} pts</span>
+                        </div>
+                        <div className="bg-[#00D2D3] border-2 border-black p-2 rounded-xl text-black">
+                          <span className="block text-[10px] font-black uppercase">J2</span>
+                          <span className="text-xl font-black">{p2Score} pts</span>
+                        </div>
                       </div>
-                      <div className="bg-[#00D2D3] border-2 border-black p-2 rounded-xl text-black">
-                        <span className="block text-[10px] font-black uppercase">J2</span>
-                        <span className="text-xl font-black">{p2Score} pts</span>
+                    ) : (
+                      <div className="my-4 bg-[#F1F2F6] border-2 border-black rounded-2xl p-3 text-sm">
+                        <span className="block text-xs font-black uppercase text-gray-600">Puntuación Total</span>
+                        <span className="text-2xl font-black text-black">{p1Score} Pares encontrados</span>
                       </div>
-                    </div>
+                    )}
 
-                    <button
-                      onClick={startNewGame}
-                      className="w-full py-3 bg-[#FF9F43] border-4 border-black text-black font-black rounded-2xl text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:scale-95 flex items-center justify-center gap-2"
-                    >
-                      <RotateCcw size={18} /> JUGAR OTRA VEZ
-                    </button>
+                    <div className="flex flex-col gap-2">
+                      <button
+                        onClick={startNewGame}
+                        className="w-full py-3 bg-[#FF9F43] border-4 border-black text-black font-black rounded-2xl text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:scale-95 flex items-center justify-center gap-2"
+                      >
+                        <RotateCcw size={18} /> JUGAR OTRA VEZ
+                      </button>
+                      <button
+                        onClick={() => setInMenu(true)}
+                        className="w-full py-2.5 bg-gray-200 border-2 border-black text-black font-black rounded-xl text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:scale-95"
+                      >
+                        CAMBIAR MODO / MENÚ
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
