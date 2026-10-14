@@ -2,8 +2,15 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Juego de Sílabas Mágico</title>
+    
+    <!-- Meta tags para apariencia de App Nativa (iOS y Android) -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#1E272C">
+
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- React & ReactDOM -->
@@ -11,8 +18,19 @@
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <!-- Babel para compilar JSX en el navegador -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+      /* Evitar comportamientos no deseados de navegador móvil */
+      body {
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+      }
+      /* Ajuste para áreas seguras de pantallas con notch */
+      .safe-pt { padding-top: max(0.625rem, env(safe-area-inset-top)); }
+      .safe-pb { padding-bottom: max(0.625rem, env(safe-area-inset-bottom)); }
+    </style>
 </head>
-<body class="bg-slate-900 m-0 p-0">
+<body class="bg-slate-900 m-0 p-0 overflow-hidden select-none">
     <div id="root"></div>
 
     <script type="text/babel">
@@ -56,9 +74,9 @@
         ];
 
         const GAME_CONFIGS = {
-          12: { pairs: 6, cols: 'grid-cols-3', label: '12 Cartas' },
-          16: { pairs: 8, cols: 'grid-cols-4', label: '16 Cartas' },
-          20: { pairs: 10, cols: 'grid-cols-4', label: '20 Cartas' }
+          12: { pairs: 6, cols: 'grid-cols-3 grid-rows-4', label: '12 Cartas' },
+          16: { pairs: 8, cols: 'grid-cols-4 grid-rows-4', label: '16 Cartas' },
+          20: { pairs: 10, cols: 'grid-cols-4 grid-rows-5', label: '20 Cartas' }
         };
 
         function App() {
@@ -80,7 +98,6 @@
               .sort(() => 0.5 - Math.random())
               .slice(0, numPairs);
 
-            // Asignar un color único a cada sílaba
             const syllableColorMap = {};
             const shuffledColors = [...CARD_COLORS].sort(() => 0.5 - Math.random());
             shuffledSyllables.forEach((syllable, idx) => {
@@ -149,13 +166,13 @@
                   }
 
                   setIsProcessing(false);
-                }, 500);
+                }, 400);
               } else {
                 setTimeout(() => {
                   setFlippedIndices([]);
                   setCurrentPlayer((prev) => (prev === 1 ? 2 : 1));
                   setIsProcessing(false);
-                }, 900);
+                }, 800);
               }
             }
           };
@@ -174,10 +191,10 @@
           };
 
           return (
-            <div className="w-full h-screen font-sans select-none flex flex-col justify-between overflow-hidden relative bg-gradient-to-r from-[#FF8C69] via-[#FF758C] to-[#E84393]">
+            <div className="w-full h-screen h-[100dvh] font-sans select-none flex flex-col justify-between overflow-hidden relative bg-gradient-to-r from-[#FF8C69] via-[#FF758C] to-[#E84393]">
               
               {/* HEADER: JUGADOR 2 */}
-              <header className="rotate-180 bg-[#1E272C] text-white p-2.5 border-b-4 border-black flex items-center justify-between shadow-lg">
+              <header className="rotate-180 bg-[#1E272C] text-white p-2.5 safe-pt border-b-4 border-black flex items-center justify-between shadow-lg z-20">
                 <div className="flex items-center gap-2">
                   <div className="w-9 h-9 rounded-xl bg-[#00D2D3] border-2 border-black flex items-center justify-center font-black text-black text-sm shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                     J2
@@ -225,10 +242,10 @@
                 </button>
               </div>
 
-              {/* TABLERO */}
-              <main className="flex-1 p-3 flex items-center justify-center overflow-y-auto">
-                <div className="bg-[#9E6B47] border-4 border-black rounded-3xl p-3 shadow-[0_8px_0_0_rgba(0,0,0,0.3)] w-full max-w-xs sm:max-w-sm flex items-center justify-center">
-                  <div className={`grid ${GAME_CONFIGS[totalCardsNum].cols} gap-2.5 w-full`}>
+              {/* TABLERO DINÁMICO RELLENANDO EL ESPACIO */}
+              <main className="flex-1 p-2 sm:p-4 flex items-center justify-center overflow-hidden w-full h-full">
+                <div className="bg-[#9E6B47] border-4 border-black rounded-3xl p-2.5 sm:p-3 shadow-[0_8px_0_0_rgba(0,0,0,0.3)] w-full h-full flex items-center justify-center max-w-md sm:max-w-lg">
+                  <div className={`grid ${GAME_CONFIGS[totalCardsNum].cols} gap-2 w-full h-full`}>
                     {cards.map((card, index) => {
                       const isFlipped = flippedIndices.includes(index);
                       const isRemoved = removedPairs.includes(card.pairId);
@@ -237,7 +254,7 @@
                         return (
                           <div
                             key={card.id}
-                            className="aspect-square w-full rounded-2xl bg-transparent border-2 border-dashed border-[#7A4E31]"
+                            className="w-full h-full bg-transparent opacity-0 pointer-events-none"
                           />
                         );
                       }
@@ -246,7 +263,7 @@
                         <button
                           key={card.id}
                           onClick={() => handleCardClick(index)}
-                          className={`aspect-square w-full relative transition-transform duration-500 transform active:scale-95 focus:outline-none ${
+                          className={`w-full h-full relative transition-transform duration-500 transform active:scale-95 focus:outline-none flex items-center justify-center ${
                             currentPlayer === 2 ? 'rotate-180' : 'rotate-0'
                           }`}
                         >
@@ -269,7 +286,7 @@
               </main>
 
               {/* FOOTER: JUGADOR 1 */}
-              <footer className="bg-[#1E272C] text-white p-2.5 border-t-4 border-black flex items-center justify-between shadow-lg">
+              <footer className="bg-[#1E272C] text-white p-2.5 safe-pb border-t-4 border-black flex items-center justify-between shadow-lg z-20">
                 <div className="flex items-center gap-2">
                   <div className="w-9 h-9 rounded-xl bg-[#FF6B6B] border-2 border-black flex items-center justify-center font-black text-black text-sm shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                     J1
