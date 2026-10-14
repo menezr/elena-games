@@ -28,13 +28,40 @@
         touch-action: manipulation;
         -webkit-tap-highlight-color: transparent;
       }
-      /* Margen superior suficiente para librar la hora/batería de iOS en webapps */
-      .safe-pt { 
-        padding-top: max(3.5rem, calc(env(safe-area-inset-top) + 1.25rem)); 
+      /* Áreas seguras para teléfonos con notch/isla dinámica y barra inferior.
+         El !important evita que estilos utilitarios sobrescriban estos espacios. */
+      html, body, #root {
+        width: 100%;
+        height: 100%;
+        margin: 0;
       }
-      /* Margen inferior seguro para la barra táctil */
-      .safe-pb { 
-        padding-bottom: max(1.75rem, env(safe-area-inset-bottom)); 
+      body {
+        min-height: 100%;
+        overflow: hidden;
+      }
+      .safe-pt {
+        padding-top: max(3.5rem, calc(env(safe-area-inset-top, 0px) + 1rem)) !important;
+        box-sizing: border-box;
+        flex-shrink: 0;
+      }
+      .safe-pb {
+        padding-bottom: max(1.25rem, calc(env(safe-area-inset-bottom, 0px) + 0.5rem)) !important;
+        box-sizing: border-box;
+        flex-shrink: 0;
+      }
+      /* Mantiene las tarjetas del mismo tamaño y escala solo el texto. */
+      .syllable-text {
+        font-size: clamp(1.8rem, 7.5vw, 2.7rem);
+        line-height: 1;
+        white-space: nowrap;
+      }
+      @media (max-height: 700px) {
+        .safe-pt {
+          padding-top: max(3rem, calc(env(safe-area-inset-top, 0px) + 0.75rem)) !important;
+        }
+        .safe-pb {
+          padding-bottom: max(1rem, calc(env(safe-area-inset-bottom, 0px) + 0.35rem)) !important;
+        }
       }
 
       .perspective-1000 {
@@ -297,10 +324,10 @@
           };
 
           return (
-            <div className="w-full h-screen h-[100dvh] font-sans select-none flex flex-col justify-between overflow-hidden relative bg-gradient-to-r from-[#FF8C69] via-[#FF758C] to-[#E84393]">
+            <div className="w-full h-screen h-[100dvh] font-sans select-none flex flex-col justify-between overflow-hidden relative bg-gradient-to-r from-[#FF8C69] via-[#FF758C] to-[#E84393]" style={{ minHeight: 0 }}>
               
               {/* HEADER: JUGADOR 2 (Con px-8 y safe-pt extendido para librar hora/batería) */}
-              <header className="w-full bg-[#1E272C] text-white px-8 py-2.5 safe-pt border-b-4 border-black flex items-center justify-between shadow-lg z-25">
+              <header className="w-full bg-[#1E272C] text-white px-6 sm:px-8 pb-2.5 pt-2 safe-pt border-b-4 border-black flex items-center justify-between shadow-lg z-25">
                 <div className="flex items-center gap-2">
                   <div className="w-9 h-9 rounded-xl bg-[#00D2D3] border-2 border-black flex items-center justify-center font-black text-black text-sm shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                     J2
@@ -349,8 +376,8 @@
               </div>
 
               {/* TABLERO */}
-              <main className="flex-1 p-2 sm:p-3 flex items-center justify-center overflow-hidden w-full h-full">
-                <div className="bg-[#9E6B47] border-4 border-black rounded-3xl p-3 sm:p-4 shadow-[0_8px_0_0_rgba(0,0,0,0.3)] w-full h-full flex items-center justify-center max-w-md sm:max-w-lg">
+              <main className="flex-1 min-h-0 p-2 sm:p-3 flex items-center justify-center overflow-hidden w-full">
+                <div className="bg-[#9E6B47] border-4 border-black rounded-3xl p-3 sm:p-4 shadow-[0_8px_0_0_rgba(0,0,0,0.3)] w-full h-full min-h-0 flex items-center justify-center max-w-md sm:max-w-lg">
                   <div className={`grid ${GAME_CONFIGS[totalCardsNum].cols} gap-3 sm:gap-4 w-full h-full items-center justify-items-center`}>
                     {cards.map((card, index) => {
                       const isFlipped = flippedIndices.includes(index);
@@ -381,7 +408,7 @@
 
                             {/* Frente de la carta */}
                             <div className={`absolute inset-0 w-full h-full ${card.colorClass} border-4 outline outline-2 outline-black rounded-xl flex items-center justify-center shadow-[0_4px_0_0_rgba(0,0,0,0.3)] backface-hidden rotate-y-180`}>
-                              <span className="text-xl sm:text-2xl font-black text-white drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] tracking-wider">
+                              <span className="syllable-text font-black text-white drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] tracking-wider">
                                 {card.syllable}
                               </span>
                             </div>
@@ -395,7 +422,7 @@
               </main>
 
               {/* FOOTER: JUGADOR 1 */}
-              <footer className="w-full bg-[#1E272C] text-white px-8 py-2.5 safe-pb border-t-4 border-black flex items-center justify-between shadow-lg z-25">
+              <footer className="w-full bg-[#1E272C] text-white px-6 sm:px-8 pt-2 pb-2.5 safe-pb border-t-4 border-black flex items-center justify-between shadow-lg z-25">
                 <div className="flex items-center gap-2">
                   <div className="w-9 h-9 rounded-xl bg-[#FF6B6B] border-2 border-black flex items-center justify-center font-black text-black text-sm shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                     J1
