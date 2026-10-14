@@ -197,8 +197,25 @@
             const newCardList = [];
             shuffledSyllables.forEach((syllable) => {
               const colorClass = syllableColorMap[syllable];
-              newCardList.push({ id: `${syllable}-1`, pairId: syllable, syllable, colorClass });
-              newCardList.push({ id: `${syllable}-2`, pairId: syllable, syllable, colorClass });
+              // Asignar una inclinación aleatoria sutil única a cada carta para darle un aspecto natural/desordenado
+              const randomRotation = (Math.random() * 8 - 4).toFixed(1);
+              const randomX = (Math.random() * 4 - 2).toFixed(1);
+              const randomY = (Math.random() * 4 - 2).toFixed(1);
+
+              newCardList.push({ 
+                id: `${syllable}-1`, 
+                pairId: syllable, 
+                syllable, 
+                colorClass, 
+                transformStyle: `rotate(${randomRotation}deg) translate(${randomX}px, ${randomY}px)` 
+              });
+              newCardList.push({ 
+                id: `${syllable}-2`, 
+                pairId: syllable, 
+                syllable, 
+                colorClass, 
+                transformStyle: `rotate(${randomRotation * -1}deg) translate(${randomX * -1}px, ${randomY * -1}px)` 
+              });
             });
 
             newCardList.sort(() => 0.5 - Math.random());
@@ -276,7 +293,7 @@
           return (
             <div className="w-full h-screen h-[100dvh] font-sans select-none flex flex-col justify-between overflow-hidden relative bg-gradient-to-r from-[#FF8C69] via-[#FF758C] to-[#E84393]">
               
-              {/* HEADER: JUGADOR 2 (Fijo, sin rotar toda la pantalla) */}
+              {/* HEADER: JUGADOR 2 */}
               <header className="w-full bg-[#1E272C] text-white px-6 py-2.5 safe-pt border-b-4 border-black flex items-center justify-between shadow-lg z-20">
                 <div className="flex items-center gap-2">
                   <div className="w-9 h-9 rounded-xl bg-[#00D2D3] border-2 border-black flex items-center justify-center font-black text-black text-sm shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
@@ -325,10 +342,10 @@
                 </button>
               </div>
 
-              {/* TABLERO: Las tarjetas giran individualmente 180° hacia el jugador en turno */}
-              <main className="flex-1 p-2 sm:p-3 flex items-center justify-center overflow-hidden w-full h-full">
-                <div className="bg-[#9E6B47] border-4 border-black rounded-3xl p-2.5 sm:p-3 shadow-[0_8px_0_0_rgba(0,0,0,0.3)] w-full h-full flex items-center justify-center max-w-md sm:max-w-lg">
-                  <div className={`grid ${GAME_CONFIGS[totalCardsNum].cols} gap-2 w-full h-full`}>
+              {/* TABLERO: Cartas alargadas estilo naipe con leve giro orgánico */}
+              <main className="flex-1 p-2 sm:p-4 flex items-center justify-center overflow-hidden w-full h-full">
+                <div className="bg-[#9E6B47] border-4 border-black rounded-3xl p-3 sm:p-4 shadow-[0_8px_0_0_rgba(0,0,0,0.3)] w-full h-full flex items-center justify-center max-w-md sm:max-w-lg">
+                  <div className={`grid ${GAME_CONFIGS[totalCardsNum].cols} gap-3 sm:gap-4 w-full h-full items-center justify-items-center`}>
                     {cards.map((card, index) => {
                       const isFlipped = flippedIndices.includes(index);
                       const isRemoved = removedPairs.includes(card.pairId);
@@ -346,18 +363,19 @@
                         <div
                           key={card.id}
                           onClick={() => handleCardClick(index)}
-                          className={`w-full h-full perspective-1000 cursor-pointer transition-transform duration-700 ${currentPlayer === 2 ? 'rotate-180' : 'rotate-0'}`}
+                          style={{ transform: card.transformStyle }}
+                          className="w-full h-[90%] max-h-[110px] perspective-1000 cursor-pointer transition-transform hover:scale-105"
                         >
                           <div className={`w-full h-full relative duration-500 transform-style-3d ${isFlipped ? 'rotate-y-180' : ''}`}>
                             
-                            {/* Dorso de la carta */}
-                            <div className="absolute inset-0 w-full h-[85%] my-auto bg-[#29B6F6] border-4 border-white outline outline-2 outline-black rounded-2xl flex items-center justify-center shadow-[0_4px_0_0_rgba(0,0,0,0.25)] backface-hidden">
-                              <div className="w-[90%] h-[90%] rounded-xl border-2 border-[#81D4FA]" />
+                            {/* Dorso de la carta (más alargado tipo naipe) */}
+                            <div className="absolute inset-0 w-full h-full bg-[#29B6F6] border-4 border-white outline outline-2 outline-black rounded-xl flex items-center justify-center shadow-[0_4px_0_0_rgba(0,0,0,0.25)] backface-hidden">
+                              <div className="w-[88%] h-[88%] rounded-lg border-2 border-[#81D4FA]" />
                             </div>
 
                             {/* Frente de la carta */}
-                            <div className={`absolute inset-0 w-full h-[85%] my-auto ${card.colorClass} border-4 outline outline-2 outline-black rounded-2xl flex items-center justify-center shadow-[0_4px_0_0_rgba(0,0,0,0.3)] backface-hidden rotate-y-180`}>
-                              <span className="text-2xl sm:text-3xl font-black text-white drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] tracking-wider">
+                            <div className={`absolute inset-0 w-full h-full ${card.colorClass} border-4 outline outline-2 outline-black rounded-xl flex items-center justify-center shadow-[0_4px_0_0_rgba(0,0,0,0.3)] backface-hidden rotate-y-180`}>
+                              <span className="text-xl sm:text-2xl font-black text-white drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] tracking-wider">
                                 {card.syllable}
                               </span>
                             </div>
