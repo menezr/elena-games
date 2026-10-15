@@ -95,26 +95,7 @@
             } catch (e) {}
           };
 
-          const playCrash = () => {
-            try {
-              const ctx = getContext();
-              const now = ctx.currentTime;
-              [250, 180, 100].forEach((freq, i) => {
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(freq, now + i * 0.1);
-                gain.gain.setValueAtTime(0.25, now + i * 0.1);
-                gain.gain.linearRampToValueAtTime(0.01, now + i * 0.1 + 0.15);
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-                osc.start(now + i * 0.1);
-                osc.stop(now + i * 0.1 + 0.15);
-              });
-            } catch (e) {}
-          };
-
-          return { playTap, playEat, playCrash };
+          return { playTap, playEat };
         };
 
         const CrownIcon = ({ size = 20 }) => (
@@ -155,7 +136,7 @@
 
           const canvasRef = useRef(null);
           const joystickRef = useRef(null);
-          const { playTap, playEat, playCrash } = useAudio();
+          const { playTap, playEat } = useAudio();
 
           useEffect(() => {
             const saved = localStorage.getItem('snake_highscore');
@@ -357,7 +338,6 @@
                   if (player.x < 10 || player.x > state.worldWidth - 10 || player.y < 10 || player.y > state.worldHeight - 10) {
                     player.alive = false;
                     dropDeathFood(player);
-                    playCrash();
                   }
 
                   player.segments.unshift({ x: player.x, y: player.y });
@@ -387,7 +367,6 @@
                   if (npc.x < 10 || npc.x > state.worldWidth - 10 || npc.y < 10 || npc.y > state.worldHeight - 10) {
                     npc.alive = false;
                     dropDeathFood(npc);
-                    playCrash();
                   }
 
                   npc.segments.unshift({ x: npc.x, y: npc.y });
@@ -407,7 +386,6 @@
                       player.score += food.value;
                       setScore(player.score);
                       
-                      // Actualizar HighScore en tiempo real
                       if (player.score > highScore) {
                         setHighScore(player.score);
                         localStorage.setItem('snake_highscore', player.score.toString());
@@ -452,7 +430,6 @@
                       s2.alive = false;
                       dropDeathFood(s1);
                       dropDeathFood(s2);
-                      playCrash();
                     }
                   }
                 }
@@ -469,7 +446,6 @@
                       if (dx * dx + dy * dy < 225) {
                         snake.alive = false;
                         dropDeathFood(snake);
-                        playCrash();
                       }
                     }
                   });
@@ -514,7 +490,6 @@
                 const camTargetX = player.alive ? player.x : state.worldWidth / 2;
                 const camTargetY = player.alive ? player.y : state.worldHeight / 2;
 
-                // Factor de escala aumentado (1.4x) para alejar más la cámara y ver más entorno
                 const zoomFactor = 1.4;
                 const targetCamX = camTargetX - (canvas.width * zoomFactor) / 2;
                 const targetCamY = camTargetY - (canvas.height * zoomFactor) / 2;
@@ -610,7 +585,6 @@
                     <CloseIcon size={18} />
                   </a>
 
-                  {/* Contenedor vectorial sin emojis */}
                   <div className="w-16 h-16 mx-auto bg-[#00D2D3] border-4 border-black rounded-2xl flex items-center justify-center text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.8)]">
                     <SnakeVector size={36} />
                   </div>
