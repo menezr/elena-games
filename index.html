@@ -71,6 +71,18 @@
           return { playTap };
         };
 
+        const Trophy = ({ size = 32 }) => (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+        );
+
+        const SnakeVector = ({ size = 28 }) => (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-4a2 2 0 0 0-2 2v4h4v4h-4v4a2 2 0 0 0 2 2h4"/><path d="M6 6h6"/><path d="M6 10h2"/><path d="M6 14h4"/><path d="M6 18h6"/></svg>
+        );
+
+        const BookVector = ({ size = 28 }) => (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        );
+
         function App() {
           const { playTap } = useAudio();
 
@@ -83,33 +95,39 @@
 
           return (
             <div className="w-full h-screen h-[100dvh] font-sans select-none flex flex-col items-center justify-center p-6 overflow-hidden safe-pt safe-pb">
-              <div className="bg-white border-4 border-black rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] flex flex-col gap-5 my-auto">
-                <div className="w-16 h-16 mx-auto bg-[#00D2D3] border-4 border-black rounded-2xl flex items-center justify-center text-3xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                  🎮
+              <div className="bg-white border-4 border-black rounded-3xl p-7 sm:p-9 max-w-sm w-full text-center shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] flex flex-col gap-6 my-auto rotate-1">
+                
+                {/* Cabecera con la Copa */}
+                <div className="w-20 h-20 mx-auto bg-[#00D2D3] border-4 border-black rounded-3xl flex items-center justify-center text-black shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] -rotate-2">
+                  <Trophy size={40} />
                 </div>
                 
-                <h1 className="text-2xl sm:text-3xl font-black text-black leading-tight">
-                  Centro de Juegos
-                </h1>
-                <p className="text-xs font-black uppercase text-gray-500 tracking-wider">
-                  Elige tu juego favorito
-                </p>
+                <div className="flex flex-col gap-1">
+                  <h1 className="text-3xl sm:text-4xl font-black text-black leading-tight tracking-wide">
+                    Centro de Juegos
+                  </h1>
+                  <p className="text-sm font-black uppercase text-gray-600 tracking-wider">
+                    Elige tu diversión
+                  </p>
+                </div>
 
-                <div className="flex flex-col gap-3 mt-1">
+                {/* Botones ligeramente desordenados */}
+                <div className="flex flex-col gap-4 mt-2">
                   <button
                     onClick={() => handleNavigate('snake.html')}
-                    className="w-full py-3.5 bg-[#00D2D3] border-4 border-black text-black font-black rounded-2xl text-base shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:scale-95 flex items-center justify-center gap-3 transition-transform"
+                    className="w-full py-4 bg-[#00D2D3] border-4 border-black text-black font-black rounded-2xl text-lg shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] active:scale-95 flex items-center justify-center gap-3 transition-transform -rotate-1 hover:rotate-0"
                   >
-                    <span className="text-xl">🐍</span> Serpiente
+                    <SnakeVector size={30} /> Serpiente
                   </button>
 
                   <button
                     onClick={() => handleNavigate('silabas.html')}
-                    className="w-full py-3.5 bg-[#FF9F43] border-4 border-black text-black font-black rounded-2xl text-base shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:scale-95 flex items-center justify-center gap-3 transition-transform"
+                    className="w-full py-4 bg-[#FF9F43] border-4 border-black text-black font-black rounded-2xl text-lg shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] active:scale-95 flex items-center justify-center gap-3 transition-transform rotate-1 hover:rotate-0"
                   >
-                    <span className="text-xl">📚</span> Juego de Sílabas
+                    <BookVector size={30} /> Juego de Sílabas
                   </button>
                 </div>
+
               </div>
             </div>
           );
