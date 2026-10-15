@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Juego de Serpiente Moderna</title>
+    <title>Juego de Serpiente</title>
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -16,7 +16,7 @@
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <!-- Babel -->
-    <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <style>
       body {
@@ -34,10 +34,6 @@
       }
       .safe-pt {
         padding-top: max(1rem, env(safe-area-inset-top, 0px)) !important;
-        box-sizing: border-box;
-      }
-      .safe-pb {
-        padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px)) !important;
         box-sizing: border-box;
       }
     </style>
@@ -125,8 +121,8 @@
             <svg width={size} height={size} viewBox="0 0 24 24" fill="#FFD700" stroke="#000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7z"/><circle cx="12" cy="18" r="1"/></svg>
         );
 
-        const MenuIcon = ({ size = 20 }) => (
-            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+        const CloseIcon = ({ size = 20 }) => (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
         );
 
         const RotateCcw = ({ size = 24 }) => (
@@ -196,7 +192,6 @@
               playerSegments.push({ x: 1000, y: 1000 + i * 5 });
             }
 
-            // Velocidades incrementadas para fluidez 60fps
             const baseSpeed = difficulty === 'easy' ? 6.0 : difficulty === 'hard' ? 8.5 : 7.2;
 
             stateRef.current.player = {
@@ -243,11 +238,11 @@
             stateRef.current.npcs = npcs;
 
             const foods = [];
-            for (let i = 0; i < 100; i++) {
+            for (let i = 0; i < 120; i++) {
               foods.push({
                 x: foodMargin + Math.random() * (worldW - foodMargin * 2),
                 y: foodMargin + Math.random() * (worldH - foodMargin * 2),
-                radius: 6,
+                radius: 4 + Math.random() * 6,
                 color: COLORS[Math.floor(Math.random() * COLORS.length)].hex
               });
             }
@@ -322,13 +317,11 @@
 
             const gameLoop = (time) => {
               const state = stateRef.current;
-              const dt = Math.min((time - state.lastTime) / 1000, 0.033); // Normalización Delta Time
               state.lastTime = time;
 
               if (!paused && !gameOver) {
                 const player = state.player;
 
-                // Jugador
                 if (player.alive) {
                   let angleDiff = player.targetAngle - player.angle;
                   while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
@@ -350,7 +343,6 @@
                   }
                 }
 
-                // Bots
                 state.npcs.forEach(npc => {
                   if (!npc.alive) return;
 
@@ -380,12 +372,12 @@
                   }
                 });
 
-                // Comida
                 if (player.alive) {
                   state.foods.forEach(food => {
                     const dx = player.x - food.x;
                     const dy = player.y - food.y;
-                    if (dx * dx + dy * dy < 324) { // Optimizado sin Math.hypot
+                    const minDist = player.radius + food.radius;
+                    if (dx * dx + dy * dy < minDist * minDist) {
                       playEat();
                       player.score += 5;
                       setScore(player.score);
@@ -400,7 +392,8 @@
                   state.foods.forEach(food => {
                     const dx = npc.x - food.x;
                     const dy = npc.y - food.y;
-                    if (dx * dx + dy * dy < 324) {
+                    const minDist = npc.radius + food.radius;
+                    if (dx * dx + dy * dy < minDist * minDist) {
                       npc.score += 5;
                       food.x = foodMargin + Math.random() * (state.worldWidth - foodMargin * 2);
                       food.y = foodMargin + Math.random() * (state.worldHeight - foodMargin * 2);
@@ -410,7 +403,6 @@
 
                 const allSnakes = [player, ...state.npcs].filter(s => s.alive);
 
-                // Colisiones cabeza-cabeza
                 for (let i = 0; i < allSnakes.length; i++) {
                   for (let j = i + 1; j < allSnakes.length; j++) {
                     const s1 = allSnakes[i];
@@ -425,7 +417,6 @@
                   }
                 }
 
-                // Colisiones con cuerpo
                 allSnakes.forEach(snake => {
                   if (!snake.alive) return;
                   allSnakes.forEach(other => {
@@ -447,7 +438,6 @@
                   setGameOver(true);
                 }
 
-                // Reaparición rápida
                 state.npcs.forEach(npc => {
                   if (!npc.alive && Math.random() < 0.02) {
                     npc.x = Math.random() * (state.worldWidth - 400) + 200;
@@ -470,7 +460,6 @@
                 if (sortedSnakes.length > 0) setKingName(sortedSnakes[0].name);
               }
 
-              // RENDERIZADO OPTIMIZADO (Sin Sombras pesadas)
               const canvas = canvasRef.current;
               if (canvas) {
                 const ctx = canvas.getContext('2d');
@@ -495,7 +484,6 @@
                 ctx.fillStyle = '#151C20';
                 ctx.fillRect(0, 0, state.worldWidth, state.worldHeight);
 
-                // Cuadrícula ligera
                 ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
                 ctx.lineWidth = 2;
                 for (let x = 0; x <= state.worldWidth; x += 100) {
@@ -509,15 +497,17 @@
                 ctx.lineWidth = 6;
                 ctx.strokeRect(0, 0, state.worldWidth, state.worldHeight);
 
-                // Dibujar Comida sin filtro blur
+                // Comida semitransparente con tamaños variados
                 state.foods.forEach(f => {
+                  ctx.save();
+                  ctx.globalAlpha = 0.65;
                   ctx.fillStyle = f.color;
                   ctx.beginPath();
                   ctx.arc(f.x, f.y, f.radius, 0, Math.PI * 2);
                   ctx.fill();
+                  ctx.restore();
                 });
 
-                // Serpientes
                 const allActiveSnakes = [player, ...state.npcs].filter(s => s.alive);
                 allActiveSnakes.forEach(snake => {
                   if (snake.segments.length < 2) return;
@@ -561,20 +551,31 @@
             return () => cancelAnimationFrame(animId);
           }, [inMenu, paused, gameOver, difficulty, kingName]);
 
+          // MENÚ EN TEMA OSCURO
           if (inMenu) {
             return (
-              <div className="w-full h-screen h-[100dvh] font-sans select-none flex flex-col items-center justify-center p-4 bg-[#1E272C] overflow-y-auto">
-                <div className="bg-[#2D3436] border-4 border-black rounded-3xl p-5 max-w-sm w-full text-center shadow-[8px_8px_0px_0px_rgba(0,0,0,0.8)] flex flex-col gap-4 my-auto">
-                  <div className="w-14 h-14 mx-auto bg-[#00D2D3] border-4 border-black rounded-2xl flex items-center justify-center text-black text-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,0.8)]">
+              <div className="w-full h-screen h-[100dvh] font-sans select-none flex flex-col items-center justify-center p-6 bg-[#1E272C] overflow-y-auto">
+                <div className="relative bg-[#2D3436] border-4 border-black rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center shadow-[8px_8px_0px_0px_rgba(0,0,0,0.8)] flex flex-col gap-5 my-auto">
+                  
+                  {/* Botón X arriba a la derecha */}
+                  <a 
+                    href="index.html"
+                    className="absolute top-4 right-4 w-9 h-9 bg-[#FF6B6B] border-2 border-black rounded-xl flex items-center justify-center text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,0.8)] active:scale-95"
+                    aria-label="Cerrar"
+                  >
+                    <CloseIcon size={18} />
+                  </a>
+
+                  <div className="w-16 h-16 mx-auto bg-[#00D2D3] border-4 border-black rounded-2xl flex items-center justify-center text-3xl text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.8)]">
                     🐍
                   </div>
                   
-                  <h1 className="text-xl sm:text-2xl font-black text-white leading-tight tracking-wide">
-                    NEON SLITHER
+                  <h1 className="text-2xl sm:text-3xl font-black text-white leading-tight">
+                    Serpiente
                   </h1>
 
-                  <div className="flex flex-col gap-1 text-left">
-                    <label className="text-[11px] font-black uppercase text-[#00D2D3] tracking-wider">Dificultad de Bots:</label>
+                  <div className="flex flex-col gap-1.5 text-left">
+                    <label className="text-xs font-black uppercase text-[#00D2D3] tracking-wider">Dificultad de Bots:</label>
                     <div className="grid grid-cols-3 gap-1.5">
                       {[
                         { id: 'easy', label: 'Fácil' },
@@ -584,7 +585,7 @@
                         <button
                           key={d.id}
                           onClick={() => { playTap(); setDifficulty(d.id); }}
-                          className={`py-1.5 rounded-xl text-xs font-black border-2 border-black transition-all ${
+                          className={`py-2 rounded-xl text-xs font-black border-2 border-black transition-all ${
                             difficulty === d.id 
                               ? 'bg-[#00D2D3] text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,0.8)] scale-105' 
                               : 'bg-[#1E272C] text-gray-300 hover:bg-gray-800'
@@ -596,15 +597,15 @@
                     </div>
                   </div>
 
-                  <div className="flex flex-col gap-1 text-left">
-                    <label className="text-[11px] font-black uppercase text-[#00D2D3] tracking-wider">Tu Color:</label>
+                  <div className="flex flex-col gap-1.5 text-left">
+                    <label className="text-xs font-black uppercase text-[#00D2D3] tracking-wider">Tu Color de Neón:</label>
                     <div className="flex justify-between gap-1.5">
                       {COLORS.map((col) => (
                         <button
                           key={col.name}
                           onClick={() => { playTap(); setSnakeColor(col); }}
-                          className={`w-9 h-9 rounded-xl border-2 border-black transition-transform ${
-                            snakeColor.name === col.name ? 'scale-110 ring-2 ring-white shadow-lg' : 'opacity-75'
+                          className={`w-10 h-10 rounded-xl border-2 border-black transition-transform ${
+                            snakeColor.name === col.name ? 'scale-110 ring-2 ring-white shadow-md' : 'opacity-75'
                           }`}
                           style={{ backgroundColor: col.hex }}
                         />
@@ -614,9 +615,9 @@
 
                   <button
                     onClick={startNewGame}
-                    className="w-full py-3 bg-[#00D2D3] border-4 border-black text-black font-black rounded-2xl text-sm sm:text-base shadow-[4px_4px_0px_0px_rgba(0,0,0,0.8)] active:scale-95 mt-1 transition-all"
+                    className="w-full py-3.5 bg-[#00D2D3] border-4 border-black text-black font-black rounded-2xl text-base shadow-[4px_4px_0px_0px_rgba(0,0,0,0.8)] active:scale-95 mt-1 transition-all"
                   >
-                    ¡JUGAR AHORA!
+                    ¡COMENZAR JUEGO!
                   </button>
                 </div>
               </div>
@@ -632,13 +633,12 @@
                 <div className="flex gap-2 pointer-events-auto">
                   <a 
                     href="index.html"
-                    className="bg-[#2D3436] border-2 border-black px-3 py-1.5 rounded-xl shadow-[3px_3px_0px_0px_rgba(0,0,0,0.8)] flex items-center gap-1.5 text-white active:scale-95"
+                    className="bg-[#2D3436] border-2 border-black px-3 py-1.5 rounded-xl shadow-[3px_3px_0px_0px_rgba(0,0,0,0.8)] flex items-center gap-1.5 text-white font-black active:scale-95 text-xs"
                   >
-                    <MenuIcon size={16} />
-                    <span className="text-xs font-black">MENÚ</span>
+                    <CloseIcon size={16} /> MENÚ
                   </a>
 
-                  <div className="bg-[#2D3436] border-2 border-black px-3 py-1.5 rounded-xl shadow-[3px_3px_0px_0px_rgba(0,0,0,0.8)] flex items-center gap-2">
+                  <div className="bg-[#2D3436] border-2 border-black px-3 py-1.5 rounded-xl shadow-[3px_3px_0px_0px_rgba(0,0,0,0.8)] flex items-center gap-1.5">
                     <span className="text-[11px] font-black text-[#00D2D3]">PTS:</span>
                     <span className="text-xs font-black text-white">{score}</span>
                   </div>
@@ -655,7 +655,7 @@
                 </div>
               </div>
 
-              {/* Joystick */}
+              {/* Joystick táctil */}
               <div 
                 ref={joystickRef} 
                 className="absolute w-20 h-20 rounded-full border-2 border-white/40 bg-white/10 hidden pointer-events-none transform -translate-x-1/2 -translate-y-1/2 z-30"
