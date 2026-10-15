@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Juego de Serpiente Moderna</title>
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#1E272C">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Babel -->
+    <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+      body {
+        touch-action: none;
+        -webkit-tap-highlight-color: transparent;
+        background-color: #1E272C;
+        color: #F1F5F9;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      }
+      html, body, #root {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+      }
+      .safe-pt {
+        padding-top: max(1rem, env(safe-area-inset-top, 0px)) !important;
+        box-sizing: border-box;
+      }
+      .safe-pb {
+        padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px)) !important;
+        box-sizing: border-box;
+      }
+      .neon-glow-cyan {
+        box-shadow: 0 0 20px rgba(0, 210, 211, 0.6);
+      }
+    </style>
+</head>
+<body class="bg-[#1E272C] m-0 p-0 overflow-hidden select-none">
+    <div id="root"></div>
+
+    <script>
+      (function () {
+        function updateVisibleAppHeight() {
+          const height = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+          document.documentElement.style.setProperty('--visible-app-height', Math.round(height) + 'px');
+        }
+        updateVisibleAppHeight();
+        window.addEventListener('resize', updateVisibleAppHeight, { passive: true });
+        window.addEventListener('orientationchange', updateVisibleAppHeight, { passive: true });
+        if (window.visualViewport) {
+          window.visualViewport.addEventListener('resize', updateVisibleAppHeight, { passive: true });
+        }
+      })();
+    </script>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+        
+        const BOT_NAMES = ['Rayo', 'Viper', 'Zeta', 'Nox', 'Blaze', 'Kuro', 'Froz', 'Spark', 'Titan', 'Onyx'];
+
+        const useAudio = () => {
+          const audioCtxRef = useRef(null);
+
+          const getContext = () => {
+            if (!audioCtxRef.current) {
+              const AudioContext = window.AudioContext || window.webkitAudioContext;
+              audioCtxRef.current = new AudioContext();
+            }
+            if (audioCtxRef.current.state === 'suspended') {
+              audioCtxRef.current.resume();
+            }
+            return audioCtxRef.current;
+          };
+
+          const playTap = () => {
+            try {
+              const ctx = getContext();
+              const osc = ctx.createOscillator();
+              const gain = ctx.createGain();
+              osc.type = 'sine';
+              osc.frequency.setValueAtTime(400, ctx.currentTime);
+              osc.frequency.exponentialRampToValueAtTime(200, ctx.currentTime + 0.08);
+              gain.gain.setValueAtTime(0.15, ctx.currentTime);
+              gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 0.08);
+              osc.connect(gain);
+              gain.connect(ctx.destination);
+              osc.start();
+              osc.stop(ctx.currentTime + 0.08);
+            } catch (e) {}
+          };
+
+          const playEat = () => {
+            try {
+              const ctx = getContext();
+              const now = ctx.currentTime;
+              const osc = ctx.createOscillator();
+              const gain = ctx.createGain();
+              osc.type = 'triangle';
+              osc.frequency.setValueAtTime(300, now);
+              osc.frequency.exponentialRampToValueAtTime(800, now + 0.12);
+              gain.gain.setValueAtTime(0.2, now);
+              gain.gain.linearRampToValueAtTime(0.01, now + 0.12);
+              osc.connect(gain);
+              gain.connect(ctx.destination);
+              osc.start(now);
+              osc.stop(now + 0.12);
+            } catch (e) {}
+          };
+
+          const playCrash = () => {
+            try {
+              const ctx = getContext();
+              const now = ctx.currentTime;
+              [250, 180, 100].forEach((freq, i) => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(freq, now + i * 0.1);
+                gain.gain.setValueAtTime(0.25, now + i * 0.1);
+                gain.gain.linearRampToValueAtTime(0.01, now + i * 0.1 + 0.15);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start(now + i * 0.1);
+                osc.stop(now + i * 0.1 + 0.15);
+              });
+            } catch (e) {}
+          };
+
+          return { playTap, playEat, playCrash };
+        };
+
+        const Trophy = ({ size = 24 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+        );
+
+        const CrownIcon = ({ size = 20 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="#FFD700" stroke="#000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7z"/><circle cx="12" cy="18" r="1"/></svg>
+        );
+
+        const MenuIcon = ({ size = 20 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+        );
+
+        const RotateCcw = ({ size = 24 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+        );
+
+        const COLORS = [
+          { name: 'Turquesa', hex: '#00D2D3', shadow: 'rgba(0, 210, 211, 0.8)' },
+          { name: 'Coral', hex: '#FF6B6B', shadow: 'rgba(255, 107, 107, 0.8)' },
+          { name: 'Naranja', hex: '#FF9F43', shadow: 'rgba(255, 159, 67, 0.8)' },
+          { name: 'Violeta', hex: '#A55EEA', shadow: 'rgba(165, 94, 234, 0.8)' },
+          { name: 'Lima', hex: '#1DD1A1', shadow: 'rgba(29, 209, 161, 0.8)' }
+        ];
+
+        function App() {
+          const [inMenu, setInMenu] = useState(true);
+          const [difficulty, setDifficulty] = useState('normal'); 
+          const [snakeColor, setSnakeColor] = useState(COLORS[0]);
+          const [score, setScore] = useState(0);
+          const [gameOver, setGameOver] = useState(false);
+          const [paused, setPaused] = useState(false);
+          const [showRanking, setShowRanking] = useState(false);
+          const [rankingList, setRankingList] = useState([]);
+          const [kingName, setKingName] = useState('Tú');
+
+          const canvasRef = useRef(null);
+          const joystickRef = useRef(null);
+          const { playTap, playEat, playCrash } = useAudio();
+
+          const stateRef = useRef({
+            worldWidth: 2000,
+            worldHeight: 2000,
+            player: {
+              x: 1000,
+              y: 1000,
+              angle: 0,
+              targetAngle: 0,
+              speed: 3.5,
+              radius: 12,
+              segments: [],
+              color: COLORS[0],
+              score: 0,
+              alive: true,
+              name: 'Tú'
+            },
+            npcs: [],
+            foods: [],
+            camera: { x: 0, y: 0 }
+          });
+
+          const touchJoystick = useRef({
+            active: false,
+            startX: 0,
+            startY: 0,
+            identifier: null
+          });
+
+          const startNewGame = () => {
+            playTap();
+            const worldW = 2000;
+            const worldH = 2000;
+            const foodMargin = 60; // Evita que aparezca comida fuera o pegada al borde
+            
+            const playerSegments = [];
+            for (let i = 0; i < 30; i++) {
+              playerSegments.push({ x: 1000, y: 1000 + i * 5 });
+            }
+
+            const pColor = snakeColor;
+            stateRef.current.player = {
+              x: 1000,
+              y: 1000,
+              angle: -Math.PI / 2,
+              targetAngle: -Math.PI / 2,
+              speed: difficulty === 'easy' ? 3.2 : difficulty === 'hard' ? 4.2 : 3.7,
+              radius: 12,
+              segments: playerSegments,
+              color: pColor,
+              score: 0,
+              alive: true,
+              name: 'Tú'
+            };
+
+            const npcColors = COLORS.filter(c => c.name !== pColor.name);
+            const npcs = [];
+            const npcCount = difficulty === 'easy' ? 3 : difficulty === 'normal' ? 5 : 7;
+            const shuffledNames = [...BOT_NAMES].sort(() => Math.random() - 0.5);
+            
+            for (let i = 0; i < npcCount; i++) {
+              const nx = Math.random() * (worldW - 600) + 300;
+              const ny = Math.random() * (worldH - 600) + 300;
+              const nSegs = [];
+              for (let j = 0; j < 25; j++) {
+                nSegs.push({ x: nx, y: ny + j * 5 });
+              }
+              npcs.push({
+                x: nx,
+                y: ny,
+                angle: Math.random() * Math.PI * 2,
+                targetAngle: Math.random() * Math.PI * 2,
+                speed: 3.2 + Math.random() * 0.8,
+                radius: 12,
+                segments: nSegs,
+                color: npcColors[i % npcColors.length],
+                score: Math.floor(Math.random() * 30),
+                alive: true,
+                name: shuffledNames[i % shuffledNames.length],
+                changeDirTimer: 0
+              });
+            }
+            stateRef.current.npcs = npcs;
+
+            const foods = [];
+            for (let i = 0; i < 150; i++) {
+              foods.push({
+                x: foodMargin + Math.random() * (worldW - foodMargin * 2),
+                y: foodMargin + Math.random() * (worldH - foodMargin * 2),
+                radius: 6 + Math.random() * 4,
+                color: COLORS[Math.floor(Math.random() * COLORS.length)].hex
+              });
+            }
+            stateRef.current.foods = foods;
+
+            setScore(0);
+            setGameOver(false);
+            setPaused(false);
+            setShowRanking(false);
+            setInMenu(false);
+          };
+
+          useEffect(() => {
+            const handleTouchStart = (e) => {
+              if (inMenu || gameOver || paused) return;
+              const touch = e.changedTouches[0];
+              if (!touchJoystick.current.active) {
+                touchJoystick.current.active = true;
+                touchJoystick.current.identifier = touch.identifier;
+                touchJoystick.current.startX = touch.clientX;
+                touchJoystick.current.startY = touch.clientY;
+                if (joystickRef.current) {
+                  joystickRef.current.style.display = 'block';
+                  joystickRef.current.style.left = `${touch.clientX}px`;
+                  joystickRef.current.style.top = `${touch.clientY}px`;
+                }
+              }
+            };
+
+            const handleTouchMove = (e) => {
+              if (!touchJoystick.current.active) return;
+              for (let i = 0; i < e.changedTouches.length; i++) {
+                const touch = e.changedTouches[i];
+                if (touch.identifier === touchJoystick.current.identifier) {
+                  const dx = touch.clientX - touchJoystick.current.startX;
+                  const dy = touch.clientY - touchJoystick.current.startY;
+                  if (Math.hypot(dx, dy) > 5) {
+                    stateRef.current.player.targetAngle = Math.atan2(dy, dx);
+                  }
+                }
+              }
+            };
+
+            const handleTouchEnd = (e) => {
+              for (let i = 0; i < e.changedTouches.length; i++) {
+                if (e.changedTouches[i].identifier === touchJoystick.current.identifier) {
+                  touchJoystick.current.active = false;
+                  if (joystickRef.current) {
+                    joystickRef.current.style.display = 'none';
+                  }
+                }
+              }
+            };
+
+            window.addEventListener('touchstart', handleTouchStart, { passive: true });
+            window.addEventListener('touchmove', handleTouchMove, { passive: true });
+            window.addEventListener('touchend', handleTouchEnd);
+
+            return () => {
+              window.removeEventListener('touchstart', handleTouchStart);
+              window.removeEventListener('touchmove', handleTouchMove);
+              window.removeEventListener('touchend', handleTouchEnd);
+            };
+          }, [inMenu, gameOver, paused]);
+
+          useEffect(() => {
+            if (inMenu) return;
+
+            let animId;
+            const foodMargin = 60;
+
+            const updateGame = () => {
+              if (paused || gameOver) return;
+              const state = stateRef.current;
+              const player = state.player;
+
+              // Movimiento Jugador
+              if (player.alive) {
+                let angleDiff = player.targetAngle - player.angle;
+                while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+                while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+                player.angle += angleDiff * 0.15;
+
+                player.x += Math.cos(player.angle) * player.speed;
+                player.y += Math.sin(player.angle) * player.speed;
+
+                const margin = 10;
+                if (player.x < margin || player.x > state.worldWidth - margin || player.y < margin || player.y > state.worldHeight - margin) {
+                  player.alive = false;
+                  playCrash();
+                }
+
+                player.segments.unshift({ x: player.x, y: player.y });
+                const targetSegLength = Math.floor(25 + player.score * 0.8);
+                while (player.segments.length > targetSegLength) {
+                  player.segments.pop();
+                }
+              }
+
+              // Movimiento Bots
+              state.npcs.forEach(npc => {
+                if (!npc.alive) return;
+
+                npc.changeDirTimer--;
+                if (npc.changeDirTimer <= 0) {
+                  npc.changeDirTimer = Math.floor(Math.random() * 60) + 30;
+                  npc.targetAngle += (Math.random() - 0.5) * 1.5;
+                }
+
+                let angleDiff = npc.targetAngle - npc.angle;
+                while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+                while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+                npc.angle += angleDiff * 0.1;
+
+                npc.x += Math.cos(npc.angle) * npc.speed;
+                npc.y += Math.sin(npc.angle) * npc.speed;
+
+                const margin = 10;
+                if (npc.x < margin || npc.x > state.worldWidth - margin || npc.y < margin || npc.y > state.worldHeight - margin) {
+                  npc.alive = false;
+                  playCrash();
+                }
+
+                npc.segments.unshift({ x: npc.x, y: npc.y });
+                const targetSegLen = Math.floor(25 + npc.score * 0.8);
+                while (npc.segments.length > targetSegLen) {
+                  npc.segments.pop();
+                }
+              });
+
+              // Comida estrictamente dentro del mapa
+              if (player.alive) {
+                state.foods.forEach(food => {
+                  if (Math.hypot(player.x - food.x, player.y - food.y) < player.radius + food.radius) {
+                    playEat();
+                    player.score += 5;
+                    setScore(player.score);
+                    food.x = foodMargin + Math.random() * (state.worldWidth - foodMargin * 2);
+                    food.y = foodMargin + Math.random() * (state.worldHeight - foodMargin * 2);
+                  }
+                });
+              }
+
+              state.npcs.forEach(npc => {
+                if (!npc.alive) return;
+                state.foods.forEach(food => {
+                  if (Math.hypot(npc.x - food.x, npc.y - food.y) < npc.radius + food.radius) {
+                    npc.score += 5;
+                    food.x = foodMargin + Math.random() * (state.worldWidth - foodMargin * 2);
+                    food.y = foodMargin + Math.random() * (state.worldHeight - foodMargin * 2);
+                  }
+                });
+              });
+
+              // Mantener densidad de comida
+              if (state.foods.length < 150) {
+                state.foods.push({
+                  x: foodMargin + Math.random() * (state.worldWidth - foodMargin * 2),
+                  y: foodMargin + Math.random() * (state.worldHeight - foodMargin * 2),
+                  radius: 6 + Math.random() * 4,
+                  color: COLORS[Math.floor(Math.random() * COLORS.length)].hex
+                });
+              }
+
+              const allSnakes = [player, ...state.npcs].filter(s => s.alive);
+
+              // Colisiones cabeza a cabeza
+              for (let i = 0; i < allSnakes.length; i++) {
+                for (let j = i + 1; j < allSnakes.length; j++) {
+                  const s1 = allSnakes[i];
+                  const s2 = allSnakes[j];
+                  if (Math.hypot(s1.x - s2.x, s1.y - s2.y) < s1.radius + s2.radius) {
+                    s1.alive = false;
+                    s2.alive = false;
+                    playCrash();
+
+                    for (let f = 0; f < 8; f++) {
+                      state.foods.push({
+                        x: Math.max(foodMargin, Math.min(state.worldWidth - foodMargin, (s1.x + s2.x) / 2 + (Math.random() - 0.5) * 40)),
+                        y: Math.max(foodMargin, Math.min(state.worldHeight - foodMargin, (s1.y + s2.y) / 2 + (Math.random() - 0.5) * 40)),
+                        radius: 8,
+                        color: '#FFD700'
+                      });
+                    }
+                  }
+                }
+              }
+
+              // Colisión contra cuerpo ajeno
+              allSnakes.forEach(snake => {
+                if (!snake.alive) return;
+                allSnakes.forEach(other => {
+                  if (!other.alive || snake === other) return;
+
+                  for (let k = 0; k < other.segments.length; k += 2) {
+                    const seg = other.segments[k];
+                    if (Math.hypot(snake.x - seg.x, snake.y - seg.y) < snake.radius + 4) {
+                      snake.alive = false;
+                      playCrash();
+                      
+                      other.segments.forEach((segItem, idx) => {
+                        if (idx % 6 === 0) {
+                          state.foods.push({
+                            x: Math.max(foodMargin, Math.min(state.worldWidth - foodMargin, segItem.x + (Math.random() - 0.5) * 15)),
+                            y: Math.max(foodMargin, Math.min(state.worldHeight - foodMargin, segItem.y + (Math.random() - 0.5) * 15)),
+                            radius: 7,
+                            color: other.color.hex
+                          });
+                        }
+                      });
+                    }
+                  }
+                });
+              });
+
+              if (!player.alive && !gameOver) {
+                setGameOver(true);
+              }
+
+              // Reaparición de bots
+              state.npcs.forEach(npc => {
+                if (!npc.alive && Math.random() < 0.01) {
+                  npc.x = Math.random() * (state.worldWidth - 400) + 200;
+                  npc.y = Math.random() * (state.worldHeight - 400) + 200;
+                  npc.segments = [];
+                  npc.score = 0;
+                  npc.alive = true;
+                  for (let j = 0; j < 25; j++) {
+                    npc.segments.push({ x: npc.x, y: npc.y + j * 5 });
+                  }
+                }
+              });
+
+              // Ranking en tiempo real
+              const sortedSnakes = [player, ...state.npcs]
+                .filter(s => s.alive)
+                .map(s => ({ name: s.name, score: s.score, length: s.segments.length }))
+                .sort((a, b) => b.length - a.length);
+
+              setRankingList(sortedSnakes);
+              if (sortedSnakes.length > 0) {
+                setKingName(sortedSnakes[0].name);
+              }
+            };
+
+            const renderGame = () => {
+              const canvas = canvasRef.current;
+              if (!canvas) return;
+              const ctx = canvas.getContext('2d');
+              const state = stateRef.current;
+
+              const parent = canvas.parentElement;
+              if (parent && (canvas.width !== parent.clientWidth || canvas.height !== parent.clientHeight)) {
+                canvas.width = parent.clientWidth;
+                canvas.height = parent.clientHeight;
+              }
+
+              const player = state.player;
+              const camTargetX = player.alive ? player.x : state.worldWidth / 2;
+              const camTargetY = player.alive ? player.y : state.worldHeight / 2;
+
+              state.camera.x += (camTargetX - canvas.width / 2 - state.camera.x) * 0.1;
+              state.camera.y += (camTargetY - canvas.height / 2 - state.camera.y) * 0.1;
+
+              ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+              ctx.save();
+              ctx.translate(-state.camera.x, -state.camera.y);
+
+              // Fondo
+              ctx.fillStyle = '#151C20';
+              ctx.fillRect(0, 0, state.worldWidth, state.worldHeight);
+
+              // Cuadrícula
+              ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+              ctx.lineWidth = 1.5;
+              const gridSize = 80;
+              for (let x = 0; x <= state.worldWidth; x += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, state.worldHeight);
+                ctx.stroke();
+              }
+              for (let y = 0; y <= state.worldHeight; y += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(state.worldWidth, y);
+                ctx.stroke();
+              }
+
+              // Bordes Rojos
+              ctx.strokeStyle = '#FF6B6B';
+              ctx.lineWidth = 6;
+              ctx.strokeRect(0, 0, state.worldWidth, state.worldHeight);
+
+              // Comida
+              state.foods.forEach(f => {
+                ctx.save();
+                ctx.globalAlpha = 0.8;
+                ctx.shadowColor = f.color;
+                ctx.shadowBlur = 8;
+                ctx.fillStyle = f.color;
+                ctx.beginPath();
+                ctx.arc(f.x, f.y, f.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+              });
+
+              // Serpientes
+              const allActiveSnakes = [player, ...state.npcs].filter(s => s.alive);
+              
+              allActiveSnakes.forEach(snake => {
+                if (snake.segments.length < 2) return;
+
+                ctx.save();
+                ctx.shadowColor = snake.color.shadow;
+                ctx.shadowBlur = 12;
+                ctx.strokeStyle = snake.color.hex;
+                ctx.lineWidth = snake.radius * 1.8;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+
+                ctx.beginPath();
+                snake.segments.forEach((seg, idx) => {
+                  if (idx === 0) ctx.moveTo(seg.x, seg.y);
+                  else ctx.lineTo(seg.x, seg.y);
+                });
+                ctx.stroke();
+
+                const head = snake.segments[0];
+                ctx.fillStyle = '#FFFFFF';
+                ctx.beginPath();
+                ctx.arc(head.x, head.y, snake.radius * 0.7, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = '#FFFFFF';
+                ctx.font = 'bold 12px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(snake.name, head.x, head.y - snake.radius - 10);
+
+                if (snake.name === kingName) {
+                  ctx.font = '16px sans-serif';
+                  ctx.fillText('👑', head.x, head.y - snake.radius - 26);
+                }
+
+                ctx.restore();
+              });
+
+              ctx.restore();
+
+              animId = requestAnimationFrame(() => {
+                updateGame();
+                renderGame();
+              });
+            };
+
+            animId = requestAnimationFrame(() => {
+              updateGame();
+              renderGame();
+            });
+
+            return () => cancelAnimationFrame(animId);
+          }, [inMenu, paused, gameOver, difficulty, kingName]);
+
+          if (inMenu) {
+            return (
+              <div className="w-full h-screen h-[100dvh] font-sans select-none flex flex-col items-center justify-center p-4 bg-[#1E272C] overflow-y-auto">
+                <div className="bg-[#2D3436] border-4 border-black rounded-3xl p-5 max-w-sm w-full text-center shadow-[8px_8px_0px_0px_rgba(0,0,0,0.8)] flex flex-col gap-4 my-auto">
+                  <div className="w-14 h-14 mx-auto bg-[#00D2D3] border-4 border-black rounded-2xl flex items-center justify-center text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.8)] neon-glow-cyan">
+                    <Trophy size={30} />
+                  </div>
+                  
+                  <h1 className="text-xl sm:text-2xl font-black text-white leading-tight tracking-wide">
+                    NEON SLITHER
+                  </h1>
+
+                  <div className="flex flex-col gap-1 text-left">
+                    <label className="text-[11px] font-black uppercase text-[#00D2D3] tracking-wider">Dificultad de Bots:</label>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {[
+                        { id: 'easy', label: 'Fácil' },
+                        { id: 'normal', label: 'Normal' },
+                        { id: 'hard', label: 'Difícil' }
+                      ].map((d) => (
+                        <button
+                          key={d.id}
+                          onClick={() => { playTap(); setDifficulty(d.id); }}
+                          className={`py-1.5 rounded-xl text-xs font-black border-2 border-black transition-all ${
+                            difficulty === d.id 
+                              ? 'bg-[#00D2D3] text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,0.8)] scale-105' 
+                              : 'bg-[#1E272C] text-gray-300 hover:bg-gray-800'
+                          }`}
+                        >
+                          {d.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-1 text-left">
+                    <label className="text-[11px] font-black uppercase text-[#00D2D3] tracking-wider">Tu Color de Neón:</label>
+                    <div className="flex justify-between gap-1.5">
+                      {COLORS.map((col) => (
+                        <button
+                          key={col.name}
+                          onClick={() => { playTap(); setSnakeColor(col); }}
+                          className={`w-9 h-9 rounded-xl border-2 border-black transition-transform ${
+                            snakeColor.name === col.name ? 'scale-110 ring-2 ring-white shadow-lg' : 'opacity-75'
+                          }`}
+                          style={{ backgroundColor: col.hex }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={startNewGame}
+                    className="w-full py-3 bg-[#00D2D3] border-4 border-black text-black font-black rounded-2xl text-sm sm:text-base shadow-[4px_4px_0px_0px_rgba(0,0,0,0.8)] active:scale-95 mt-1 transition-all"
+                  >
+                    ¡JUGAR AHORA!
+                  </button>
+                </div>
+              </div>
+            );
+          }
+
+          return (
+            <div className="relative w-full h-screen h-[100dvh] overflow-hidden select-none bg-[#1E272C]">
+              <canvas ref={canvasRef} className="block w-full h-full cursor-crosshair" />
+
+              {/* HUD Superior con Menú y Ranking */}
+              <div className="absolute top-0 left-0 right-0 p-3 flex justify-between items-start pointer-events-none safe-pt z-20">
+                <div className="flex gap-2 pointer-events-auto">
+                  <button 
+                    onClick={() => { playTap(); setInMenu(true); }}
+                    className="bg-[#2D3436] border-2 border-black px-3 py-1.5 rounded-xl shadow-[3px_3px_0px_0px_rgba(0,0,0,0.8)] flex items-center gap-1.5 text-white active:scale-95"
+                  >
+                    <MenuIcon size={16} />
+                    <span className="text-xs font-black">MENÚ</span>
+                  </button>
+
+                  <div className="bg-[#2D3436] border-2 border-black px-3 py-1.5 rounded-xl shadow-[3px_3px_0px_0px_rgba(0,0,0,0.8)] flex items-center gap-2">
+                    <span className="text-[11px] font-black text-[#00D2D3]">PTS:</span>
+                    <span className="text-xs font-black text-white">{score}</span>
+                  </div>
+                </div>
+
+                <div className="flex gap-2 pointer-events-auto">
+                  <button 
+                    onClick={() => { playTap(); setShowRanking(true); }}
+                    className="bg-[#2D3436] border-2 border-black px-3 py-1.5 rounded-xl shadow-[3px_3px_0px_0px_rgba(0,0,0,0.8)] flex items-center gap-1.5 text-white active:scale-95"
+                  >
+                    <CrownIcon size={16} />
+                    <span className="text-xs font-black">{kingName}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Joystick táctil */}
+              <div 
+                ref={joystickRef} 
+                className="absolute w-20 h-20 rounded-full border-2 border-white/40 bg-white/10 hidden pointer-events-none transform -translate-x-1/2 -translate-y-1/2 z-30 backdrop-blur-sm"
+              />
+
+              {/* Modal de Ranking */}
+              {showRanking && (
+                <div className="absolute inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                  <div className="bg-[#2D3436] border-4 border-black rounded-3xl p-5 max-w-xs w-full text-center shadow-[8px_8px_0px_0px_rgba(0,0,0,0.8)] flex flex-col gap-3">
+                    <h2 className="text-lg font-black text-[#00D2D3]">RANKING EN VIVO</h2>
+                    <div className="flex flex-col gap-1.5 max-h-48 overflow-y-auto pr-1">
+                      {rankingList.map((item, index) => (
+                        <div key={index} className="bg-[#1E272C] px-3 py-2 rounded-xl border-2 border-black flex justify-between items-center text-xs font-black">
+                          <span className="text-white flex items-center gap-2">
+                            {index === 0 ? '👑' : `${index + 1}.`} {item.name}
+                          </span>
+                          <span className="text-[#00D2D3]">{item.score} pts</span>
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      onClick={() => { playTap(); setShowRanking(false); }}
+                      className="w-full py-2.5 bg-[#00D2D3] border-4 border-black text-black font-black rounded-xl text-xs shadow-[3px_3px_0px_0px_rgba(0,0,0,0.8)] active:scale-95 mt-1"
+                    >
+                      CERRAR
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Pantalla de Game Over */}
+              {gameOver && (
+                <div className="absolute inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                  <div className="bg-[#2D3436] border-4 border-black rounded-3xl p-6 max-w-xs w-full text-center shadow-[8px_8px_0px_0px_rgba(0,0,0,0.8)] flex flex-col gap-4">
+                    <h2 className="text-2xl font-black text-[#FF6B6B]">¡FIN DEL JUEGO!</h2>
+                    <div className="bg-[#1E272C] p-3 rounded-2xl border-2 border-black">
+                      <p className="text-xs font-black text-gray-400">PUNTUACIÓN FINAL</p>
+                      <p className="text-2xl font-black text-white">{score}</p>
+                    </div>
+                    <button
+                      onClick={startNewGame}
+                      className="w-full py-3 bg-[#00D2D3] border-4 border-black text-black font-black rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,0.8)] active:scale-95 flex items-center justify-center gap-2 text-sm"
+                    >
+                      <RotateCcw size={18} /> JUGAR DE NUEVO
+                    </button>
+                    <button
+                      onClick={() => setInMenu(true)}
+                      className="text-xs font-black text-gray-400 underline hover:text-white"
+                    >
+                      Volver al Menú
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
