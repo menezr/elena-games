@@ -40,28 +40,10 @@
         padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px)) !important;
         box-sizing: border-box;
       }
-      .neon-glow-cyan {
-        box-shadow: 0 0 20px rgba(0, 210, 211, 0.6);
-      }
     </style>
 </head>
 <body class="bg-[#1E272C] m-0 p-0 overflow-hidden select-none">
     <div id="root"></div>
-
-    <script>
-      (function () {
-        function updateVisibleAppHeight() {
-          const height = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-          document.documentElement.style.setProperty('--visible-app-height', Math.round(height) + 'px');
-        }
-        updateVisibleAppHeight();
-        window.addEventListener('resize', updateVisibleAppHeight, { passive: true });
-        window.addEventListener('orientationchange', updateVisibleAppHeight, { passive: true });
-        if (window.visualViewport) {
-          window.visualViewport.addEventListener('resize', updateVisibleAppHeight, { passive: true });
-        }
-      })();
-    </script>
 
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
@@ -139,10 +121,6 @@
           return { playTap, playEat, playCrash };
         };
 
-        const Trophy = ({ size = 24 }) => (
-            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
-        );
-
         const CrownIcon = ({ size = 20 }) => (
             <svg width={size} height={size} viewBox="0 0 24 24" fill="#FFD700" stroke="#000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7z"/><circle cx="12" cy="18" r="1"/></svg>
         );
@@ -156,11 +134,11 @@
         );
 
         const COLORS = [
-          { name: 'Turquesa', hex: '#00D2D3', shadow: 'rgba(0, 210, 211, 0.8)' },
-          { name: 'Coral', hex: '#FF6B6B', shadow: 'rgba(255, 107, 107, 0.8)' },
-          { name: 'Naranja', hex: '#FF9F43', shadow: 'rgba(255, 159, 67, 0.8)' },
-          { name: 'Violeta', hex: '#A55EEA', shadow: 'rgba(165, 94, 234, 0.8)' },
-          { name: 'Lima', hex: '#1DD1A1', shadow: 'rgba(29, 209, 161, 0.8)' }
+          { name: 'Turquesa', hex: '#00D2D3' },
+          { name: 'Coral', hex: '#FF6B6B' },
+          { name: 'Naranja', hex: '#FF9F43' },
+          { name: 'Violeta', hex: '#A55EEA' },
+          { name: 'Lima', hex: '#1DD1A1' }
         ];
 
         function App() {
@@ -181,12 +159,13 @@
           const stateRef = useRef({
             worldWidth: 2000,
             worldHeight: 2000,
+            lastTime: 0,
             player: {
               x: 1000,
               y: 1000,
               angle: 0,
               targetAngle: 0,
-              speed: 3.5,
+              speed: 6.5,
               radius: 12,
               segments: [],
               color: COLORS[0],
@@ -210,29 +189,31 @@
             playTap();
             const worldW = 2000;
             const worldH = 2000;
-            const foodMargin = 60; // Evita que aparezca comida fuera o pegada al borde
+            const foodMargin = 60;
             
             const playerSegments = [];
             for (let i = 0; i < 30; i++) {
               playerSegments.push({ x: 1000, y: 1000 + i * 5 });
             }
 
-            const pColor = snakeColor;
+            // Velocidades incrementadas para fluidez 60fps
+            const baseSpeed = difficulty === 'easy' ? 6.0 : difficulty === 'hard' ? 8.5 : 7.2;
+
             stateRef.current.player = {
               x: 1000,
               y: 1000,
               angle: -Math.PI / 2,
               targetAngle: -Math.PI / 2,
-              speed: difficulty === 'easy' ? 3.2 : difficulty === 'hard' ? 4.2 : 3.7,
+              speed: baseSpeed,
               radius: 12,
               segments: playerSegments,
-              color: pColor,
+              color: snakeColor,
               score: 0,
               alive: true,
               name: 'Tú'
             };
 
-            const npcColors = COLORS.filter(c => c.name !== pColor.name);
+            const npcColors = COLORS.filter(c => c.name !== snakeColor.name);
             const npcs = [];
             const npcCount = difficulty === 'easy' ? 3 : difficulty === 'normal' ? 5 : 7;
             const shuffledNames = [...BOT_NAMES].sort(() => Math.random() - 0.5);
@@ -249,7 +230,7 @@
                 y: ny,
                 angle: Math.random() * Math.PI * 2,
                 targetAngle: Math.random() * Math.PI * 2,
-                speed: 3.2 + Math.random() * 0.8,
+                speed: baseSpeed * 0.9,
                 radius: 12,
                 segments: nSegs,
                 color: npcColors[i % npcColors.length],
@@ -262,15 +243,16 @@
             stateRef.current.npcs = npcs;
 
             const foods = [];
-            for (let i = 0; i < 150; i++) {
+            for (let i = 0; i < 100; i++) {
               foods.push({
                 x: foodMargin + Math.random() * (worldW - foodMargin * 2),
                 y: foodMargin + Math.random() * (worldH - foodMargin * 2),
-                radius: 6 + Math.random() * 4,
+                radius: 6,
                 color: COLORS[Math.floor(Math.random() * COLORS.length)].hex
               });
             }
             stateRef.current.foods = foods;
+            stateRef.current.lastTime = performance.now();
 
             setScore(0);
             setGameOver(false);
@@ -303,7 +285,7 @@
                 if (touch.identifier === touchJoystick.current.identifier) {
                   const dx = touch.clientX - touchJoystick.current.startX;
                   const dy = touch.clientY - touchJoystick.current.startY;
-                  if (Math.hypot(dx, dy) > 5) {
+                  if (dx * dx + dy * dy > 25) {
                     stateRef.current.player.targetAngle = Math.atan2(dy, dx);
                   }
                 }
@@ -338,296 +320,244 @@
             let animId;
             const foodMargin = 60;
 
-            const updateGame = () => {
-              if (paused || gameOver) return;
+            const gameLoop = (time) => {
               const state = stateRef.current;
-              const player = state.player;
+              const dt = Math.min((time - state.lastTime) / 1000, 0.033); // Normalización Delta Time
+              state.lastTime = time;
 
-              // Movimiento Jugador
-              if (player.alive) {
-                let angleDiff = player.targetAngle - player.angle;
-                while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
-                while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
-                player.angle += angleDiff * 0.15;
+              if (!paused && !gameOver) {
+                const player = state.player;
 
-                player.x += Math.cos(player.angle) * player.speed;
-                player.y += Math.sin(player.angle) * player.speed;
+                // Jugador
+                if (player.alive) {
+                  let angleDiff = player.targetAngle - player.angle;
+                  while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+                  while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+                  player.angle += angleDiff * 0.25;
 
-                const margin = 10;
-                if (player.x < margin || player.x > state.worldWidth - margin || player.y < margin || player.y > state.worldHeight - margin) {
-                  player.alive = false;
-                  playCrash();
-                }
+                  player.x += Math.cos(player.angle) * player.speed;
+                  player.y += Math.sin(player.angle) * player.speed;
 
-                player.segments.unshift({ x: player.x, y: player.y });
-                const targetSegLength = Math.floor(25 + player.score * 0.8);
-                while (player.segments.length > targetSegLength) {
-                  player.segments.pop();
-                }
-              }
-
-              // Movimiento Bots
-              state.npcs.forEach(npc => {
-                if (!npc.alive) return;
-
-                npc.changeDirTimer--;
-                if (npc.changeDirTimer <= 0) {
-                  npc.changeDirTimer = Math.floor(Math.random() * 60) + 30;
-                  npc.targetAngle += (Math.random() - 0.5) * 1.5;
-                }
-
-                let angleDiff = npc.targetAngle - npc.angle;
-                while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
-                while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
-                npc.angle += angleDiff * 0.1;
-
-                npc.x += Math.cos(npc.angle) * npc.speed;
-                npc.y += Math.sin(npc.angle) * npc.speed;
-
-                const margin = 10;
-                if (npc.x < margin || npc.x > state.worldWidth - margin || npc.y < margin || npc.y > state.worldHeight - margin) {
-                  npc.alive = false;
-                  playCrash();
-                }
-
-                npc.segments.unshift({ x: npc.x, y: npc.y });
-                const targetSegLen = Math.floor(25 + npc.score * 0.8);
-                while (npc.segments.length > targetSegLen) {
-                  npc.segments.pop();
-                }
-              });
-
-              // Comida estrictamente dentro del mapa
-              if (player.alive) {
-                state.foods.forEach(food => {
-                  if (Math.hypot(player.x - food.x, player.y - food.y) < player.radius + food.radius) {
-                    playEat();
-                    player.score += 5;
-                    setScore(player.score);
-                    food.x = foodMargin + Math.random() * (state.worldWidth - foodMargin * 2);
-                    food.y = foodMargin + Math.random() * (state.worldHeight - foodMargin * 2);
-                  }
-                });
-              }
-
-              state.npcs.forEach(npc => {
-                if (!npc.alive) return;
-                state.foods.forEach(food => {
-                  if (Math.hypot(npc.x - food.x, npc.y - food.y) < npc.radius + food.radius) {
-                    npc.score += 5;
-                    food.x = foodMargin + Math.random() * (state.worldWidth - foodMargin * 2);
-                    food.y = foodMargin + Math.random() * (state.worldHeight - foodMargin * 2);
-                  }
-                });
-              });
-
-              // Mantener densidad de comida
-              if (state.foods.length < 150) {
-                state.foods.push({
-                  x: foodMargin + Math.random() * (state.worldWidth - foodMargin * 2),
-                  y: foodMargin + Math.random() * (state.worldHeight - foodMargin * 2),
-                  radius: 6 + Math.random() * 4,
-                  color: COLORS[Math.floor(Math.random() * COLORS.length)].hex
-                });
-              }
-
-              const allSnakes = [player, ...state.npcs].filter(s => s.alive);
-
-              // Colisiones cabeza a cabeza
-              for (let i = 0; i < allSnakes.length; i++) {
-                for (let j = i + 1; j < allSnakes.length; j++) {
-                  const s1 = allSnakes[i];
-                  const s2 = allSnakes[j];
-                  if (Math.hypot(s1.x - s2.x, s1.y - s2.y) < s1.radius + s2.radius) {
-                    s1.alive = false;
-                    s2.alive = false;
+                  if (player.x < 10 || player.x > state.worldWidth - 10 || player.y < 10 || player.y > state.worldHeight - 10) {
+                    player.alive = false;
                     playCrash();
+                  }
 
-                    for (let f = 0; f < 8; f++) {
-                      state.foods.push({
-                        x: Math.max(foodMargin, Math.min(state.worldWidth - foodMargin, (s1.x + s2.x) / 2 + (Math.random() - 0.5) * 40)),
-                        y: Math.max(foodMargin, Math.min(state.worldHeight - foodMargin, (s1.y + s2.y) / 2 + (Math.random() - 0.5) * 40)),
-                        radius: 8,
-                        color: '#FFD700'
-                      });
-                    }
+                  player.segments.unshift({ x: player.x, y: player.y });
+                  const targetSegLength = Math.floor(25 + player.score * 0.8);
+                  while (player.segments.length > targetSegLength) {
+                    player.segments.pop();
                   }
                 }
-              }
 
-              // Colisión contra cuerpo ajeno
-              allSnakes.forEach(snake => {
-                if (!snake.alive) return;
-                allSnakes.forEach(other => {
-                  if (!other.alive || snake === other) return;
+                // Bots
+                state.npcs.forEach(npc => {
+                  if (!npc.alive) return;
 
-                  for (let k = 0; k < other.segments.length; k += 2) {
-                    const seg = other.segments[k];
-                    if (Math.hypot(snake.x - seg.x, snake.y - seg.y) < snake.radius + 4) {
-                      snake.alive = false;
+                  npc.changeDirTimer--;
+                  if (npc.changeDirTimer <= 0) {
+                    npc.changeDirTimer = Math.floor(Math.random() * 40) + 20;
+                    npc.targetAngle += (Math.random() - 0.5) * 1.5;
+                  }
+
+                  let angleDiff = npc.targetAngle - npc.angle;
+                  while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+                  while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+                  npc.angle += angleDiff * 0.2;
+
+                  npc.x += Math.cos(npc.angle) * npc.speed;
+                  npc.y += Math.sin(npc.angle) * npc.speed;
+
+                  if (npc.x < 10 || npc.x > state.worldWidth - 10 || npc.y < 10 || npc.y > state.worldHeight - 10) {
+                    npc.alive = false;
+                    playCrash();
+                  }
+
+                  npc.segments.unshift({ x: npc.x, y: npc.y });
+                  const targetSegLen = Math.floor(25 + npc.score * 0.8);
+                  while (npc.segments.length > targetSegLen) {
+                    npc.segments.pop();
+                  }
+                });
+
+                // Comida
+                if (player.alive) {
+                  state.foods.forEach(food => {
+                    const dx = player.x - food.x;
+                    const dy = player.y - food.y;
+                    if (dx * dx + dy * dy < 324) { // Optimizado sin Math.hypot
+                      playEat();
+                      player.score += 5;
+                      setScore(player.score);
+                      food.x = foodMargin + Math.random() * (state.worldWidth - foodMargin * 2);
+                      food.y = foodMargin + Math.random() * (state.worldHeight - foodMargin * 2);
+                    }
+                  });
+                }
+
+                state.npcs.forEach(npc => {
+                  if (!npc.alive) return;
+                  state.foods.forEach(food => {
+                    const dx = npc.x - food.x;
+                    const dy = npc.y - food.y;
+                    if (dx * dx + dy * dy < 324) {
+                      npc.score += 5;
+                      food.x = foodMargin + Math.random() * (state.worldWidth - foodMargin * 2);
+                      food.y = foodMargin + Math.random() * (state.worldHeight - foodMargin * 2);
+                    }
+                  });
+                });
+
+                const allSnakes = [player, ...state.npcs].filter(s => s.alive);
+
+                // Colisiones cabeza-cabeza
+                for (let i = 0; i < allSnakes.length; i++) {
+                  for (let j = i + 1; j < allSnakes.length; j++) {
+                    const s1 = allSnakes[i];
+                    const s2 = allSnakes[j];
+                    const dx = s1.x - s2.x;
+                    const dy = s1.y - s2.y;
+                    if (dx * dx + dy * dy < 576) {
+                      s1.alive = false;
+                      s2.alive = false;
                       playCrash();
-                      
-                      other.segments.forEach((segItem, idx) => {
-                        if (idx % 6 === 0) {
-                          state.foods.push({
-                            x: Math.max(foodMargin, Math.min(state.worldWidth - foodMargin, segItem.x + (Math.random() - 0.5) * 15)),
-                            y: Math.max(foodMargin, Math.min(state.worldHeight - foodMargin, segItem.y + (Math.random() - 0.5) * 15)),
-                            radius: 7,
-                            color: other.color.hex
-                          });
-                        }
-                      });
+                    }
+                  }
+                }
+
+                // Colisiones con cuerpo
+                allSnakes.forEach(snake => {
+                  if (!snake.alive) return;
+                  allSnakes.forEach(other => {
+                    if (!other.alive || snake === other) return;
+
+                    for (let k = 0; k < other.segments.length; k += 3) {
+                      const seg = other.segments[k];
+                      const dx = snake.x - seg.x;
+                      const dy = snake.y - seg.y;
+                      if (dx * dx + dy * dy < 256) {
+                        snake.alive = false;
+                        playCrash();
+                      }
+                    }
+                  });
+                });
+
+                if (!player.alive && !gameOver) {
+                  setGameOver(true);
+                }
+
+                // Reaparición rápida
+                state.npcs.forEach(npc => {
+                  if (!npc.alive && Math.random() < 0.02) {
+                    npc.x = Math.random() * (state.worldWidth - 400) + 200;
+                    npc.y = Math.random() * (state.worldHeight - 400) + 200;
+                    npc.segments = [];
+                    npc.score = 0;
+                    npc.alive = true;
+                    for (let j = 0; j < 25; j++) {
+                      npc.segments.push({ x: npc.x, y: npc.y + j * 5 });
                     }
                   }
                 });
-              });
 
-              if (!player.alive && !gameOver) {
-                setGameOver(true);
+                const sortedSnakes = [player, ...state.npcs]
+                  .filter(s => s.alive)
+                  .map(s => ({ name: s.name, score: s.score, length: s.segments.length }))
+                  .sort((a, b) => b.length - a.length);
+
+                setRankingList(sortedSnakes);
+                if (sortedSnakes.length > 0) setKingName(sortedSnakes[0].name);
               }
 
-              // Reaparición de bots
-              state.npcs.forEach(npc => {
-                if (!npc.alive && Math.random() < 0.01) {
-                  npc.x = Math.random() * (state.worldWidth - 400) + 200;
-                  npc.y = Math.random() * (state.worldHeight - 400) + 200;
-                  npc.segments = [];
-                  npc.score = 0;
-                  npc.alive = true;
-                  for (let j = 0; j < 25; j++) {
-                    npc.segments.push({ x: npc.x, y: npc.y + j * 5 });
-                  }
-                }
-              });
-
-              // Ranking en tiempo real
-              const sortedSnakes = [player, ...state.npcs]
-                .filter(s => s.alive)
-                .map(s => ({ name: s.name, score: s.score, length: s.segments.length }))
-                .sort((a, b) => b.length - a.length);
-
-              setRankingList(sortedSnakes);
-              if (sortedSnakes.length > 0) {
-                setKingName(sortedSnakes[0].name);
-              }
-            };
-
-            const renderGame = () => {
+              // RENDERIZADO OPTIMIZADO (Sin Sombras pesadas)
               const canvas = canvasRef.current;
-              if (!canvas) return;
-              const ctx = canvas.getContext('2d');
-              const state = stateRef.current;
-
-              const parent = canvas.parentElement;
-              if (parent && (canvas.width !== parent.clientWidth || canvas.height !== parent.clientHeight)) {
-                canvas.width = parent.clientWidth;
-                canvas.height = parent.clientHeight;
-              }
-
-              const player = state.player;
-              const camTargetX = player.alive ? player.x : state.worldWidth / 2;
-              const camTargetY = player.alive ? player.y : state.worldHeight / 2;
-
-              state.camera.x += (camTargetX - canvas.width / 2 - state.camera.x) * 0.1;
-              state.camera.y += (camTargetY - canvas.height / 2 - state.camera.y) * 0.1;
-
-              ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-              ctx.save();
-              ctx.translate(-state.camera.x, -state.camera.y);
-
-              // Fondo
-              ctx.fillStyle = '#151C20';
-              ctx.fillRect(0, 0, state.worldWidth, state.worldHeight);
-
-              // Cuadrícula
-              ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
-              ctx.lineWidth = 1.5;
-              const gridSize = 80;
-              for (let x = 0; x <= state.worldWidth; x += gridSize) {
-                ctx.beginPath();
-                ctx.moveTo(x, 0);
-                ctx.lineTo(x, state.worldHeight);
-                ctx.stroke();
-              }
-              for (let y = 0; y <= state.worldHeight; y += gridSize) {
-                ctx.beginPath();
-                ctx.moveTo(0, y);
-                ctx.lineTo(state.worldWidth, y);
-                ctx.stroke();
-              }
-
-              // Bordes Rojos
-              ctx.strokeStyle = '#FF6B6B';
-              ctx.lineWidth = 6;
-              ctx.strokeRect(0, 0, state.worldWidth, state.worldHeight);
-
-              // Comida
-              state.foods.forEach(f => {
-                ctx.save();
-                ctx.globalAlpha = 0.8;
-                ctx.shadowColor = f.color;
-                ctx.shadowBlur = 8;
-                ctx.fillStyle = f.color;
-                ctx.beginPath();
-                ctx.arc(f.x, f.y, f.radius, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.restore();
-              });
-
-              // Serpientes
-              const allActiveSnakes = [player, ...state.npcs].filter(s => s.alive);
-              
-              allActiveSnakes.forEach(snake => {
-                if (snake.segments.length < 2) return;
-
-                ctx.save();
-                ctx.shadowColor = snake.color.shadow;
-                ctx.shadowBlur = 12;
-                ctx.strokeStyle = snake.color.hex;
-                ctx.lineWidth = snake.radius * 1.8;
-                ctx.lineCap = 'round';
-                ctx.lineJoin = 'round';
-
-                ctx.beginPath();
-                snake.segments.forEach((seg, idx) => {
-                  if (idx === 0) ctx.moveTo(seg.x, seg.y);
-                  else ctx.lineTo(seg.x, seg.y);
-                });
-                ctx.stroke();
-
-                const head = snake.segments[0];
-                ctx.fillStyle = '#FFFFFF';
-                ctx.beginPath();
-                ctx.arc(head.x, head.y, snake.radius * 0.7, 0, Math.PI * 2);
-                ctx.fill();
-
-                ctx.fillStyle = '#FFFFFF';
-                ctx.font = 'bold 12px sans-serif';
-                ctx.textAlign = 'center';
-                ctx.fillText(snake.name, head.x, head.y - snake.radius - 10);
-
-                if (snake.name === kingName) {
-                  ctx.font = '16px sans-serif';
-                  ctx.fillText('👑', head.x, head.y - snake.radius - 26);
+              if (canvas) {
+                const ctx = canvas.getContext('2d');
+                const parent = canvas.parentElement;
+                if (parent && (canvas.width !== parent.clientWidth || canvas.height !== parent.clientHeight)) {
+                  canvas.width = parent.clientWidth;
+                  canvas.height = parent.clientHeight;
                 }
 
+                const player = state.player;
+                const camTargetX = player.alive ? player.x : state.worldWidth / 2;
+                const camTargetY = player.alive ? player.y : state.worldHeight / 2;
+
+                state.camera.x += (camTargetX - canvas.width / 2 - state.camera.x) * 0.15;
+                state.camera.y += (camTargetY - canvas.height / 2 - state.camera.y) * 0.15;
+
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                ctx.save();
+                ctx.translate(-state.camera.x, -state.camera.y);
+
+                ctx.fillStyle = '#151C20';
+                ctx.fillRect(0, 0, state.worldWidth, state.worldHeight);
+
+                // Cuadrícula ligera
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+                ctx.lineWidth = 2;
+                for (let x = 0; x <= state.worldWidth; x += 100) {
+                  ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, state.worldHeight); ctx.stroke();
+                }
+                for (let y = 0; y <= state.worldHeight; y += 100) {
+                  ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(state.worldWidth, y); ctx.stroke();
+                }
+
+                ctx.strokeStyle = '#FF6B6B';
+                ctx.lineWidth = 6;
+                ctx.strokeRect(0, 0, state.worldWidth, state.worldHeight);
+
+                // Dibujar Comida sin filtro blur
+                state.foods.forEach(f => {
+                  ctx.fillStyle = f.color;
+                  ctx.beginPath();
+                  ctx.arc(f.x, f.y, f.radius, 0, Math.PI * 2);
+                  ctx.fill();
+                });
+
+                // Serpientes
+                const allActiveSnakes = [player, ...state.npcs].filter(s => s.alive);
+                allActiveSnakes.forEach(snake => {
+                  if (snake.segments.length < 2) return;
+
+                  ctx.strokeStyle = snake.color.hex;
+                  ctx.lineWidth = snake.radius * 1.8;
+                  ctx.lineCap = 'round';
+                  ctx.lineJoin = 'round';
+
+                  ctx.beginPath();
+                  snake.segments.forEach((seg, idx) => {
+                    if (idx === 0) ctx.moveTo(seg.x, seg.y);
+                    else ctx.lineTo(seg.x, seg.y);
+                  });
+                  ctx.stroke();
+
+                  const head = snake.segments[0];
+                  ctx.fillStyle = '#FFFFFF';
+                  ctx.beginPath();
+                  ctx.arc(head.x, head.y, snake.radius * 0.7, 0, Math.PI * 2);
+                  ctx.fill();
+
+                  ctx.fillStyle = '#FFFFFF';
+                  ctx.font = 'bold 12px sans-serif';
+                  ctx.textAlign = 'center';
+                  ctx.fillText(snake.name, head.x, head.y - snake.radius - 8);
+
+                  if (snake.name === kingName) {
+                    ctx.font = '16px sans-serif';
+                    ctx.fillText('👑', head.x, head.y - snake.radius - 24);
+                  }
+                });
+
                 ctx.restore();
-              });
+              }
 
-              ctx.restore();
-
-              animId = requestAnimationFrame(() => {
-                updateGame();
-                renderGame();
-              });
+              animId = requestAnimationFrame(gameLoop);
             };
 
-            animId = requestAnimationFrame(() => {
-              updateGame();
-              renderGame();
-            });
-
+            animId = requestAnimationFrame(gameLoop);
             return () => cancelAnimationFrame(animId);
           }, [inMenu, paused, gameOver, difficulty, kingName]);
 
@@ -635,8 +565,8 @@
             return (
               <div className="w-full h-screen h-[100dvh] font-sans select-none flex flex-col items-center justify-center p-4 bg-[#1E272C] overflow-y-auto">
                 <div className="bg-[#2D3436] border-4 border-black rounded-3xl p-5 max-w-sm w-full text-center shadow-[8px_8px_0px_0px_rgba(0,0,0,0.8)] flex flex-col gap-4 my-auto">
-                  <div className="w-14 h-14 mx-auto bg-[#00D2D3] border-4 border-black rounded-2xl flex items-center justify-center text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.8)] neon-glow-cyan">
-                    <Trophy size={30} />
+                  <div className="w-14 h-14 mx-auto bg-[#00D2D3] border-4 border-black rounded-2xl flex items-center justify-center text-black text-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,0.8)]">
+                    🐍
                   </div>
                   
                   <h1 className="text-xl sm:text-2xl font-black text-white leading-tight tracking-wide">
@@ -667,7 +597,7 @@
                   </div>
 
                   <div className="flex flex-col gap-1 text-left">
-                    <label className="text-[11px] font-black uppercase text-[#00D2D3] tracking-wider">Tu Color de Neón:</label>
+                    <label className="text-[11px] font-black uppercase text-[#00D2D3] tracking-wider">Tu Color:</label>
                     <div className="flex justify-between gap-1.5">
                       {COLORS.map((col) => (
                         <button
@@ -697,16 +627,16 @@
             <div className="relative w-full h-screen h-[100dvh] overflow-hidden select-none bg-[#1E272C]">
               <canvas ref={canvasRef} className="block w-full h-full cursor-crosshair" />
 
-              {/* HUD Superior con Menú y Ranking */}
+              {/* HUD Superior */}
               <div className="absolute top-0 left-0 right-0 p-3 flex justify-between items-start pointer-events-none safe-pt z-20">
                 <div className="flex gap-2 pointer-events-auto">
-                  <button 
-                    onClick={() => { playTap(); setInMenu(true); }}
+                  <a 
+                    href="index.html"
                     className="bg-[#2D3436] border-2 border-black px-3 py-1.5 rounded-xl shadow-[3px_3px_0px_0px_rgba(0,0,0,0.8)] flex items-center gap-1.5 text-white active:scale-95"
                   >
                     <MenuIcon size={16} />
                     <span className="text-xs font-black">MENÚ</span>
-                  </button>
+                  </a>
 
                   <div className="bg-[#2D3436] border-2 border-black px-3 py-1.5 rounded-xl shadow-[3px_3px_0px_0px_rgba(0,0,0,0.8)] flex items-center gap-2">
                     <span className="text-[11px] font-black text-[#00D2D3]">PTS:</span>
@@ -725,13 +655,13 @@
                 </div>
               </div>
 
-              {/* Joystick táctil */}
+              {/* Joystick */}
               <div 
                 ref={joystickRef} 
-                className="absolute w-20 h-20 rounded-full border-2 border-white/40 bg-white/10 hidden pointer-events-none transform -translate-x-1/2 -translate-y-1/2 z-30 backdrop-blur-sm"
+                className="absolute w-20 h-20 rounded-full border-2 border-white/40 bg-white/10 hidden pointer-events-none transform -translate-x-1/2 -translate-y-1/2 z-30"
               />
 
-              {/* Modal de Ranking */}
+              {/* Ranking Modal */}
               {showRanking && (
                 <div className="absolute inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
                   <div className="bg-[#2D3436] border-4 border-black rounded-3xl p-5 max-w-xs w-full text-center shadow-[8px_8px_0px_0px_rgba(0,0,0,0.8)] flex flex-col gap-3">
@@ -756,7 +686,7 @@
                 </div>
               )}
 
-              {/* Pantalla de Game Over */}
+              {/* Game Over Modal */}
               {gameOver && (
                 <div className="absolute inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
                   <div className="bg-[#2D3436] border-4 border-black rounded-3xl p-6 max-w-xs w-full text-center shadow-[8px_8px_0px_0px_rgba(0,0,0,0.8)] flex flex-col gap-4">
@@ -771,12 +701,12 @@
                     >
                       <RotateCcw size={18} /> JUGAR DE NUEVO
                     </button>
-                    <button
-                      onClick={() => setInMenu(true)}
+                    <a
+                      href="index.html"
                       className="text-xs font-black text-gray-400 underline hover:text-white"
                     >
                       Volver al Menú
-                    </button>
+                    </a>
                   </div>
                 </div>
               )}
