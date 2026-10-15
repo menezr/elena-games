@@ -16,7 +16,7 @@
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <!-- Babel -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <style>
       body {
@@ -125,6 +125,10 @@
           <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
         );
 
+        const SnakeVector = ({ size = 36 }) => (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-4a2 2 0 0 0-2 2v4h4v4h-4v4a2 2 0 0 0 2 2h4"/><path d="M6 6h6"/><path d="M6 10h2"/><path d="M6 14h4"/><path d="M6 18h6"/></svg>
+        );
+
         const RotateCcw = ({ size = 24 }) => (
             <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
         );
@@ -142,6 +146,7 @@
           const [difficulty, setDifficulty] = useState('normal'); 
           const [snakeColor, setSnakeColor] = useState(COLORS[0]);
           const [score, setScore] = useState(0);
+          const [highScore, setHighScore] = useState(0);
           const [gameOver, setGameOver] = useState(false);
           const [paused, setPaused] = useState(false);
           const [showRanking, setShowRanking] = useState(false);
@@ -151,6 +156,11 @@
           const canvasRef = useRef(null);
           const joystickRef = useRef(null);
           const { playTap, playEat, playCrash } = useAudio();
+
+          useEffect(() => {
+            const saved = localStorage.getItem('snake_highscore');
+            if (saved) setHighScore(parseInt(saved, 10));
+          }, []);
 
           const stateRef = useRef({
             worldWidth: 2000,
@@ -162,7 +172,7 @@
               angle: 0,
               targetAngle: 0,
               speed: 6.5,
-              radius: 9, // Ligeramente más chica
+              radius: 9,
               segments: [],
               color: COLORS[0],
               score: 0,
@@ -200,7 +210,7 @@
               angle: -Math.PI / 2,
               targetAngle: -Math.PI / 2,
               speed: baseSpeed,
-              radius: 9, // Ligeramente más chica
+              radius: 9,
               segments: playerSegments,
               color: snakeColor,
               score: 0,
@@ -226,7 +236,7 @@
                 angle: Math.random() * Math.PI * 2,
                 targetAngle: Math.random() * Math.PI * 2,
                 speed: baseSpeed * 0.9,
-                radius: 9, // Ligeramente más chica
+                radius: 9,
                 segments: nSegs,
                 color: npcColors[i % npcColors.length],
                 score: Math.floor(Math.random() * 30),
@@ -317,13 +327,12 @@
             const foodMargin = 60;
 
             const dropDeathFood = (snake) => {
-              // Deja un cúmulo de 10 bolas de alta puntuación al morir
               for (let k = 0; k < 10; k++) {
                 stateRef.current.foods.push({
                   x: Math.max(foodMargin, Math.min(stateRef.current.worldWidth - foodMargin, snake.x + (Math.random() - 0.5) * 60)),
                   y: Math.max(foodMargin, Math.min(stateRef.current.worldHeight - foodMargin, snake.y + (Math.random() - 0.5) * 60)),
                   radius: 7,
-                  value: 15, // Más puntos por bola al comer restos de serpiente
+                  value: 15,
                   color: '#FFD700'
                 });
               }
@@ -397,6 +406,13 @@
                       playEat();
                       player.score += food.value;
                       setScore(player.score);
+                      
+                      // Actualizar HighScore en tiempo real
+                      if (player.score > highScore) {
+                        setHighScore(player.score);
+                        localStorage.setItem('snake_highscore', player.score.toString());
+                      }
+
                       food.x = foodMargin + Math.random() * (state.worldWidth - foodMargin * 2);
                       food.y = foodMargin + Math.random() * (state.worldHeight - foodMargin * 2);
                       food.value = 5;
@@ -498,12 +514,18 @@
                 const camTargetX = player.alive ? player.x : state.worldWidth / 2;
                 const camTargetY = player.alive ? player.y : state.worldHeight / 2;
 
-                state.camera.x += (camTargetX - canvas.width / 2 - state.camera.x) * 0.15;
-                state.camera.y += (camTargetY - canvas.height / 2 - state.camera.y) * 0.15;
+                // Factor de escala aumentado (1.4x) para alejar más la cámara y ver más entorno
+                const zoomFactor = 1.4;
+                const targetCamX = camTargetX - (canvas.width * zoomFactor) / 2;
+                const targetCamY = camTargetY - (canvas.height * zoomFactor) / 2;
+
+                state.camera.x += (targetCamX - state.camera.x) * 0.15;
+                state.camera.y += (targetCamY - state.camera.y) * 0.15;
 
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
 
                 ctx.save();
+                ctx.scale(1 / zoomFactor, 1 / zoomFactor);
                 ctx.translate(-state.camera.x, -state.camera.y);
 
                 ctx.fillStyle = '#151C20';
@@ -573,14 +595,13 @@
 
             animId = requestAnimationFrame(gameLoop);
             return () => cancelAnimationFrame(animId);
-          }, [inMenu, paused, gameOver, difficulty, kingName]);
+          }, [inMenu, paused, gameOver, difficulty, kingName, highScore]);
 
           if (inMenu) {
             return (
               <div className="w-full h-screen h-[100dvh] font-sans select-none flex flex-col items-center justify-center p-6 bg-[#1E272C] overflow-y-auto">
                 <div className="relative bg-[#2D3436] border-4 border-black rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center shadow-[8px_8px_0px_0px_rgba(0,0,0,0.8)] flex flex-col gap-5 my-auto">
                   
-                  {/* Botón X para salir al Index principal */}
                   <a 
                     href="index.html"
                     className="absolute top-4 right-4 w-9 h-9 bg-[#FF6B6B] border-2 border-black rounded-xl flex items-center justify-center text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,0.8)] active:scale-95"
@@ -589,8 +610,9 @@
                     <CloseIcon size={18} />
                   </a>
 
-                  <div className="w-16 h-16 mx-auto bg-[#00D2D3] border-4 border-black rounded-2xl flex items-center justify-center text-3xl text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.8)]">
-                    🐍
+                  {/* Contenedor vectorial sin emojis */}
+                  <div className="w-16 h-16 mx-auto bg-[#00D2D3] border-4 border-black rounded-2xl flex items-center justify-center text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.8)]">
+                    <SnakeVector size={36} />
                   </div>
                   
                   <h1 className="text-2xl sm:text-3xl font-black text-white leading-tight">
@@ -635,6 +657,13 @@
                       ))}
                     </div>
                   </div>
+
+                  {highScore > 0 && (
+                    <div className="bg-[#1E272C] border-2 border-black py-2 px-3 rounded-xl flex justify-between items-center text-xs font-black">
+                      <span className="text-gray-400">RÉCORD MÁXIMO:</span>
+                      <span className="text-[#FFD700] text-sm">{highScore} PTS</span>
+                    </div>
+                  )}
 
                   <button
                     onClick={startNewGame}
@@ -711,9 +740,10 @@
                 <div className="absolute inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
                   <div className="bg-[#2D3436] border-4 border-black rounded-3xl p-6 max-w-xs w-full text-center shadow-[8px_8px_0px_0px_rgba(0,0,0,0.8)] flex flex-col gap-4">
                     <h2 className="text-2xl font-black text-[#FF6B6B]">¡FIN DEL JUEGO!</h2>
-                    <div className="bg-[#1E272C] p-3 rounded-2xl border-2 border-black">
-                      <p className="text-xs font-black text-gray-400">PUNTUACIÓN FINAL</p>
+                    <div className="bg-[#1E272C] p-3 rounded-2xl border-2 border-black flex flex-col gap-1">
+                      <p className="text-[10px] font-black text-gray-400">PUNTUACIÓN FINAL</p>
                       <p className="text-2xl font-black text-white">{score}</p>
+                      <p className="text-[10px] font-black text-[#FFD700] mt-1">RÉCORD: {highScore} PTS</p>
                     </div>
                     <button
                       onClick={startNewGame}
