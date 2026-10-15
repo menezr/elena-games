@@ -162,7 +162,7 @@
               angle: 0,
               targetAngle: 0,
               speed: 6.5,
-              radius: 12,
+              radius: 9, // Ligeramente más chica
               segments: [],
               color: COLORS[0],
               score: 0,
@@ -200,7 +200,7 @@
               angle: -Math.PI / 2,
               targetAngle: -Math.PI / 2,
               speed: baseSpeed,
-              radius: 12,
+              radius: 9, // Ligeramente más chica
               segments: playerSegments,
               color: snakeColor,
               score: 0,
@@ -226,7 +226,7 @@
                 angle: Math.random() * Math.PI * 2,
                 targetAngle: Math.random() * Math.PI * 2,
                 speed: baseSpeed * 0.9,
-                radius: 12,
+                radius: 9, // Ligeramente más chica
                 segments: nSegs,
                 color: npcColors[i % npcColors.length],
                 score: Math.floor(Math.random() * 30),
@@ -242,7 +242,8 @@
               foods.push({
                 x: foodMargin + Math.random() * (worldW - foodMargin * 2),
                 y: foodMargin + Math.random() * (worldH - foodMargin * 2),
-                radius: 4 + Math.random() * 6,
+                radius: 4 + Math.random() * 5,
+                value: 5,
                 color: COLORS[Math.floor(Math.random() * COLORS.length)].hex
               });
             }
@@ -315,6 +316,19 @@
             let animId;
             const foodMargin = 60;
 
+            const dropDeathFood = (snake) => {
+              // Deja un cúmulo de 10 bolas de alta puntuación al morir
+              for (let k = 0; k < 10; k++) {
+                stateRef.current.foods.push({
+                  x: Math.max(foodMargin, Math.min(stateRef.current.worldWidth - foodMargin, snake.x + (Math.random() - 0.5) * 60)),
+                  y: Math.max(foodMargin, Math.min(stateRef.current.worldHeight - foodMargin, snake.y + (Math.random() - 0.5) * 60)),
+                  radius: 7,
+                  value: 15, // Más puntos por bola al comer restos de serpiente
+                  color: '#FFD700'
+                });
+              }
+            };
+
             const gameLoop = (time) => {
               const state = stateRef.current;
               state.lastTime = time;
@@ -333,6 +347,7 @@
 
                   if (player.x < 10 || player.x > state.worldWidth - 10 || player.y < 10 || player.y > state.worldHeight - 10) {
                     player.alive = false;
+                    dropDeathFood(player);
                     playCrash();
                   }
 
@@ -362,6 +377,7 @@
 
                   if (npc.x < 10 || npc.x > state.worldWidth - 10 || npc.y < 10 || npc.y > state.worldHeight - 10) {
                     npc.alive = false;
+                    dropDeathFood(npc);
                     playCrash();
                   }
 
@@ -379,10 +395,13 @@
                     const minDist = player.radius + food.radius;
                     if (dx * dx + dy * dy < minDist * minDist) {
                       playEat();
-                      player.score += 5;
+                      player.score += food.value;
                       setScore(player.score);
                       food.x = foodMargin + Math.random() * (state.worldWidth - foodMargin * 2);
                       food.y = foodMargin + Math.random() * (state.worldHeight - foodMargin * 2);
+                      food.value = 5;
+                      food.radius = 4 + Math.random() * 5;
+                      food.color = COLORS[Math.floor(Math.random() * COLORS.length)].hex;
                     }
                   });
                 }
@@ -394,9 +413,12 @@
                     const dy = npc.y - food.y;
                     const minDist = npc.radius + food.radius;
                     if (dx * dx + dy * dy < minDist * minDist) {
-                      npc.score += 5;
+                      npc.score += food.value;
                       food.x = foodMargin + Math.random() * (state.worldWidth - foodMargin * 2);
                       food.y = foodMargin + Math.random() * (state.worldHeight - foodMargin * 2);
+                      food.value = 5;
+                      food.radius = 4 + Math.random() * 5;
+                      food.color = COLORS[Math.floor(Math.random() * COLORS.length)].hex;
                     }
                   });
                 });
@@ -409,9 +431,11 @@
                     const s2 = allSnakes[j];
                     const dx = s1.x - s2.x;
                     const dy = s1.y - s2.y;
-                    if (dx * dx + dy * dy < 576) {
+                    if (dx * dx + dy * dy < 400) {
                       s1.alive = false;
                       s2.alive = false;
+                      dropDeathFood(s1);
+                      dropDeathFood(s2);
                       playCrash();
                     }
                   }
@@ -426,8 +450,9 @@
                       const seg = other.segments[k];
                       const dx = snake.x - seg.x;
                       const dy = snake.y - seg.y;
-                      if (dx * dx + dy * dy < 256) {
+                      if (dx * dx + dy * dy < 225) {
                         snake.alive = false;
+                        dropDeathFood(snake);
                         playCrash();
                       }
                     }
@@ -497,7 +522,6 @@
                 ctx.lineWidth = 6;
                 ctx.strokeRect(0, 0, state.worldWidth, state.worldHeight);
 
-                // Comida semitransparente con tamaños variados
                 state.foods.forEach(f => {
                   ctx.save();
                   ctx.globalAlpha = 0.65;
@@ -551,13 +575,12 @@
             return () => cancelAnimationFrame(animId);
           }, [inMenu, paused, gameOver, difficulty, kingName]);
 
-          // MENÚ EN TEMA OSCURO
           if (inMenu) {
             return (
               <div className="w-full h-screen h-[100dvh] font-sans select-none flex flex-col items-center justify-center p-6 bg-[#1E272C] overflow-y-auto">
                 <div className="relative bg-[#2D3436] border-4 border-black rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center shadow-[8px_8px_0px_0px_rgba(0,0,0,0.8)] flex flex-col gap-5 my-auto">
                   
-                  {/* Botón X arriba a la derecha */}
+                  {/* Botón X para salir al Index principal */}
                   <a 
                     href="index.html"
                     className="absolute top-4 right-4 w-9 h-9 bg-[#FF6B6B] border-2 border-black rounded-xl flex items-center justify-center text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,0.8)] active:scale-95"
@@ -631,12 +654,12 @@
               {/* HUD Superior */}
               <div className="absolute top-0 left-0 right-0 p-3 flex justify-between items-start pointer-events-none safe-pt z-20">
                 <div className="flex gap-2 pointer-events-auto">
-                  <a 
-                    href="index.html"
+                  <button 
+                    onClick={() => { playTap(); setInMenu(true); }}
                     className="bg-[#2D3436] border-2 border-black px-3 py-1.5 rounded-xl shadow-[3px_3px_0px_0px_rgba(0,0,0,0.8)] flex items-center gap-1.5 text-white font-black active:scale-95 text-xs"
                   >
-                    <CloseIcon size={16} /> MENÚ
-                  </a>
+                    MENÚ
+                  </button>
 
                   <div className="bg-[#2D3436] border-2 border-black px-3 py-1.5 rounded-xl shadow-[3px_3px_0px_0px_rgba(0,0,0,0.8)] flex items-center gap-1.5">
                     <span className="text-[11px] font-black text-[#00D2D3]">PTS:</span>
@@ -655,13 +678,11 @@
                 </div>
               </div>
 
-              {/* Joystick táctil */}
               <div 
                 ref={joystickRef} 
                 className="absolute w-20 h-20 rounded-full border-2 border-white/40 bg-white/10 hidden pointer-events-none transform -translate-x-1/2 -translate-y-1/2 z-30"
               />
 
-              {/* Ranking Modal */}
               {showRanking && (
                 <div className="absolute inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
                   <div className="bg-[#2D3436] border-4 border-black rounded-3xl p-5 max-w-xs w-full text-center shadow-[8px_8px_0px_0px_rgba(0,0,0,0.8)] flex flex-col gap-3">
@@ -686,7 +707,6 @@
                 </div>
               )}
 
-              {/* Game Over Modal */}
               {gameOver && (
                 <div className="absolute inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
                   <div className="bg-[#2D3436] border-4 border-black rounded-3xl p-6 max-w-xs w-full text-center shadow-[8px_8px_0px_0px_rgba(0,0,0,0.8)] flex flex-col gap-4">
@@ -701,12 +721,12 @@
                     >
                       <RotateCcw size={18} /> JUGAR DE NUEVO
                     </button>
-                    <a
-                      href="index.html"
+                    <button
+                      onClick={() => setInMenu(true)}
                       className="text-xs font-black text-gray-400 underline hover:text-white"
                     >
                       Volver al Menú
-                    </a>
+                    </button>
                   </div>
                 </div>
               )}
