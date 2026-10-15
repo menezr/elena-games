@@ -187,6 +187,10 @@
             <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
         );
 
+        const CloseIcon = ({ size = 20 }) => (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        );
+
         const ALL_SYLLABLES = [
           'LA', 'LE', 'LI', 'LO', 'LU',
           'MA', 'ME', 'MI', 'MO', 'MU',
@@ -334,7 +338,6 @@
               } else {
                 setTimeout(() => {
                   setFlippedIndices([]);
-                  // Si es 1 jugador, no cambia de turno (o se queda en J1 siempre)
                   if (numPlayers === 2) {
                     setCurrentPlayer((prev) => (prev === 1 ? 2 : 1));
                   }
@@ -363,7 +366,17 @@
           if (inMenu) {
             return (
               <div className="w-full h-screen h-[100dvh] font-sans select-none flex flex-col items-center justify-center p-6 bg-gradient-to-r from-[#FF8C69] via-[#FF758C] to-[#E84393] overflow-hidden">
-                <div className="bg-white border-4 border-black rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] flex flex-col gap-5">
+                <div className="relative bg-white border-4 border-black rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] flex flex-col gap-5">
+                  
+                  {/* Botón X para volver al index principal */}
+                  <a 
+                    href="index.html"
+                    className="absolute top-4 right-4 w-9 h-9 bg-[#FF6B6B] border-2 border-black rounded-xl flex items-center justify-center text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:scale-95"
+                    aria-label="Cerrar"
+                  >
+                    <CloseIcon size={18} />
+                  </a>
+
                   <div className="w-16 h-16 mx-auto bg-[#00D2D3] border-4 border-black rounded-2xl flex items-center justify-center text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
                     <Trophy size={36} />
                   </div>
@@ -442,7 +455,6 @@
           return (
             <div className="w-full h-screen h-[100dvh] font-sans select-none flex flex-col justify-between overflow-hidden relative bg-gradient-to-r from-[#FF8C69] via-[#FF758C] to-[#E84393]" style={{ height: "var(--visible-app-height, 100dvh)", minHeight: 0 }}>
               
-              {/* HEADER: JUGADOR 2 (Solo visible si son 2 jugadores) o indicador de turno */}
               {numPlayers === 2 ? (
                 <header className="w-full bg-[#1E272C] text-white px-6 sm:px-8 pb-2.5 pt-2 safe-pt border-b-4 border-black flex items-center justify-between shadow-lg z-25">
                   <div className="flex items-center gap-2">
