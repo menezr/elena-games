@@ -80,6 +80,29 @@
 <body class="bg-slate-900 m-0 p-0 overflow-hidden select-none">
     <div id="root"></div>
 
+    <!-- Ajusta únicamente la altura de la pantalla de juego al área visible del navegador -->
+    <script>
+      (function () {
+        function updateVisibleAppHeight() {
+          const height = window.visualViewport
+            ? window.visualViewport.height
+            : window.innerHeight;
+          document.documentElement.style.setProperty(
+            '--visible-app-height',
+            Math.round(height) + 'px'
+          );
+        }
+
+        updateVisibleAppHeight();
+        window.addEventListener('resize', updateVisibleAppHeight, { passive: true });
+        window.addEventListener('orientationchange', updateVisibleAppHeight, { passive: true });
+
+        if (window.visualViewport) {
+          window.visualViewport.addEventListener('resize', updateVisibleAppHeight, { passive: true });
+        }
+      })();
+    </script>
+
     <script type="text/babel">
         const { useState, useEffect, useCallback, useRef } = React;
         
@@ -417,7 +440,7 @@
 
           // PANTALLA DE JUEGO PRINCIPAL
           return (
-            <div className="w-full h-screen h-[100dvh] font-sans select-none flex flex-col justify-between overflow-hidden relative bg-gradient-to-r from-[#FF8C69] via-[#FF758C] to-[#E84393]" style={{ minHeight: 0 }}>
+            <div className="w-full h-screen h-[100dvh] font-sans select-none flex flex-col justify-between overflow-hidden relative bg-gradient-to-r from-[#FF8C69] via-[#FF758C] to-[#E84393]" style={{ height: "var(--visible-app-height, 100dvh)", minHeight: 0 }}>
               
               {/* HEADER: JUGADOR 2 (Solo visible si son 2 jugadores) o indicador de turno */}
               {numPlayers === 2 ? (
